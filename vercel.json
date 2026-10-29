@@ -3,6 +3,19 @@
   "framework": null,
   "outputDirectory": "public",
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "tedx-merch-store.vercel.app"
+        }
+      ],
+      "destination": "https://merch.agrwl.me/$1",
+      "permanent": false
+    }
+  ],
   "crons": [
     {
       "path": "/api/reconcile",
