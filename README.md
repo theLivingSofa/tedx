@@ -7,7 +7,7 @@ match UTRs against the bank statement by hand any more. An order turns **Paid** 
 our server has asked Cashfree directly and Cashfree has confirmed that the full amount was received.
 
 - Frontend: plain HTML, CSS and JavaScript in `public/` (no framework, no build step).
-- Backend: small Node.js (≥ 20) serverless functions in `api/`, hosted on Vercel.
+- Backend: small Node.js (≥ 22) serverless functions in `api/`, hosted on Vercel.
 - Data: a Google Sheet (tabs `Catalogue`, `Orders`, `Config`).
 - Payments: Cashfree Payment Gateway (UPI, cards, net banking, wallets), sandbox first.
 
@@ -94,7 +94,7 @@ Cashfree dashboard using the Order ID).
 
 ## Quick start (demo mode, no accounts needed)
 
-You need [Node.js](https://nodejs.org/) 20 or newer.
+You need [Node.js](https://nodejs.org/) 22 or newer.
 
 ```bash
 npm install
