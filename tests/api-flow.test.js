@@ -120,7 +120,7 @@ describe('GET /api/catalogue', () => {
     assert.equal(b.products[0].sku, 'HOD-001', 'order as in the file');
     assert.deepEqual(b.products[0], {
       sku: 'HOD-001', name: 'Hoodie', price: 750, category: 'Winter', apparel: true, printing: true,
-      imageUrl: '/images/hoodie-black.svg', available: true, maxQuantity: 20
+      imageUrl: '/images/products/hod-001.webp', available: true, maxQuantity: 20
     });
     for (const p of b.products) {
       assert.deepEqual(Object.keys(p).sort(), ['apparel', 'available', 'category', 'imageUrl', 'maxQuantity', 'name', 'price', 'printing', 'sku']);
