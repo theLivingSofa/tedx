@@ -29,6 +29,7 @@ The full technical specification is in [`docs/CONTRACT.md`](docs/CONTRACT.md).
 10. [Going-live checklist](#going-live-checklist)
 11. [Known limitations](#known-limitations)
 12. [Project structure, tests and checks](#project-structure-tests-and-checks)
+13. [Organiser dashboard](#organiser-dashboard)
 
 ---
 
@@ -294,6 +295,7 @@ Cashfree publishes test UPI IDs, card numbers and net-banking options for the sa
 | `ORDER_EXPIRY_MINUTES` | no | `30` | How long a customer has to pay (minimum 16). |
 | `RECONCILE_MIN_AGE_MINUTES` | no | `10` | The reconcile job only re-checks orders older than this. |
 | `CRON_SECRET` 🔒 | production | — | Long random string; protects `/api/reconcile`. Vercel Cron sends it automatically. |
+| `ADMIN_PASSWORD` 🔒 | for `/admin` | — | Password for the organiser dashboard (12+ characters). Empty = `/admin` is switched off (its API answers 404). Changing it signs everyone out. |
 | `WEBHOOK_TOLERANCE_SECONDS` | no | `300` | How old/new a webhook timestamp may be. |
 | `RESEND_API_KEY` 🔒 | no | — | Enables receipt emails via [Resend](https://resend.com/) (needs `EMAIL_FROM` too). |
 | `EMAIL_FROM` | no | — | Sender, e.g. `TEDxIIMRohtak Merch <merch@yourdomain>` (domain verified in Resend). |
@@ -478,3 +480,24 @@ Check every JavaScript file for syntax errors:
 ```bash
 npm run check
 ```
+
+---
+
+## Organiser dashboard
+
+Two ways for organisers to see orders. Both count **Paid orders only** and hide test (sandbox / demo) payments
+unless you tick "Include test payments".
+
+**On the site: `/admin`** (not linked from the store). Sign in with `ADMIN_PASSWORD`. It shows paid orders,
+money collected, items sold, handover progress, quantities per product and size for the vendor, the names to
+print, and a searchable orders list with a **Handed over** tick box and CSV export. It refreshes every minute.
+Sessions last 12 hours; sign-in is limited to 5 tries per 15 minutes per IP.
+
+**In the Sheet:** `npm run setup-dashboard` adds three formula tabs next to Orders (safe to run again):
+
+- **Dashboard**: the same numbers and the per-product size table.
+- **Handover**: one row per order (the same row as in Orders) with a **Handed over** checkbox (column J) and a
+  note (column K). `/admin` reads and writes these two columns, so a tick in either place shows in both.
+  Do not sort this tab; use Data → Filter views.
+- **Order Lines**: one row per item of every paid order, with size and printed name.
+

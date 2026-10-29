@@ -12,6 +12,7 @@
     "dev": "node scripts/dev-server.js",
     "test": "node --test \"tests/**/*.test.js\"",
     "setup-sheet": "node scripts/setup-sheet.js",
+    "setup-dashboard": "node scripts/setup-dashboard.js",
     "check": "node -e \"const fs=require('fs'),p=require('path'),cp=require('child_process');const w=d=>fs.existsSync(d)?fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?(e.name==='node_modules'?[]:w(p.join(d,e.name))):e.name.endsWith('.js')?[p.join(d,e.name)]:[]):[];const f=['api','lib','scripts','tests','public/js','public/config'].flatMap(w);let bad=0;for(const x of f){const r=cp.spawnSync(process.execPath,['--check',x],{encoding:'utf8'});if(r.status!==0){bad++;process.stderr.write(r.stderr||r.stdout||(x+': failed\\n'))}}console.log(bad?bad+' of '+f.length+' files failed the syntax check':'Syntax OK: '+f.length+' files');process.exit(bad?1:0)\""
   },
   "dependencies": {

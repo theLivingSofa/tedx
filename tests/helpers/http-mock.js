@@ -18,7 +18,7 @@ const API_DIR = path.join(ROOT, 'api') + path.sep;
 const SITE_URL = 'http://localhost:3000';
 
 /** Env vars that would change behaviour and must not leak in from the developer's shell. */
-const MANAGED_ENV_PREFIXES = ['GOOGLE_', 'CASHFREE_', 'RESEND_', 'VERCEL'];
+const MANAGED_ENV_PREFIXES = ['GOOGLE_', 'CASHFREE_', 'RESEND_', 'VERCEL', 'ADMIN_'];
 const MANAGED_ENV_KEYS = [
   'SITE_URL', 'PAYMENT_MODE', 'ALLOW_MOCK_IN_PRODUCTION', 'PRINTING_CHARGE', 'ORDER_EXPIRY_MINUTES',
   'RECONCILE_MIN_AGE_MINUTES', 'CRON_SECRET', 'WEBHOOK_TOLERANCE_SECONDS', 'EMAIL_FROM', 'LOCAL_DATA_DIR',

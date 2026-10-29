@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Organiser dashboard – Merch Store – TEDxIIMRohtak</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/config/brand.js" defer></script>
+  <script src="/js/util.js" defer></script>
+  <script src="/js/admin.js" defer></script>
+</head>
+<body class="page-admin">
+<div class="wrap">
+  <header class="hero">
+    <div class="tedx">TEDx</div>
+    <h1>Organiser dashboard</h1>
+    <p>Orders, money collected, sizes to order and handover, live from the order sheet.</p>
+  </header>
+
+  <main id="adminRoot">
+    <section class="card" id="loadingCard">
+      <div class="catalogue-status" role="status"><span class="spinner" aria-hidden="true"></span> Loading…</div>
+    </section>
+
+    <section class="card admin-login-card" id="loginCard" hidden>
+      <h2>Sign in</h2>
+      <form id="loginForm" novalidate>
+        <label for="adminPassword">Admin password</label>
+        <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit" id="loginBtn">Sign in</button>
+      </form>
+      <div id="loginMessage" class="message" role="status" aria-live="polite" tabindex="-1"></div>
+    </section>
+
+    <div id="dashboard" hidden>
+      <section class="card admin-toolbar" aria-label="Dashboard controls">
+        <label class="admin-check"><input type="checkbox" id="includeTest"> Include test (sandbox) payments</label>
+        <span class="small" id="updatedAt" aria-live="polite"></span>
+        <span class="admin-actions">
+          <button type="button" id="refreshBtn" class="btn-secondary">Refresh</button>
+          <button type="button" id="csvBtn" class="btn-secondary">Download orders (CSV)</button>
+          <button type="button" id="logoutBtn" class="btn-secondary">Sign out</button>
+        </span>
+      </section>
+      <div id="dashMessage" class="message" role="status" aria-live="polite" tabindex="-1"></div>
+
+      <section class="card" aria-labelledby="metricsTitle">
+        <h2 id="metricsTitle">At a glance</h2>
+        <div class="metrics" id="metrics"></div>
+      </section>
+
+      <section class="card" aria-labelledby="productsTitle">
+        <h2 id="productsTitle">Quantities to order from the vendor</h2>
+        <p class="small">Paid orders only. Products with no orders yet are hidden.</p>
+        <div class="table-scroll"><table class="admin-table" id="productsTable"></table></div>
+      </section>
+
+      <section class="card" aria-labelledby="namesTitle">
+        <h2 id="namesTitle">Names to print</h2>
+        <div class="table-scroll"><table class="admin-table" id="namesTable"></table></div>
+      </section>
+
+      <section class="card" aria-labelledby="ordersTitle">
+        <h2 id="ordersTitle">Orders</h2>
+        <div class="admin-filters">
+          <div>
+            <label for="search">Search</label>
+            <input id="search" type="search" placeholder="Name, roll number, order ID or phone" autocomplete="off">
+          </div>
+          <div>
+            <label for="statusFilter">Show</label>
+            <select id="statusFilter">
+              <option value="paid">Paid</option>
+              <option value="pending-handover">Paid, not handed over</option>
+              <option value="handed-over">Handed over</option>
+              <option value="awaiting">Awaiting payment</option>
+              <option value="failed">Failed / expired</option>
+              <option value="review">Needs a look</option>
+              <option value="all">All orders</option>
+            </select>
+          </div>
+        </div>
+        <p class="small" id="ordersCount" aria-live="polite"></p>
+        <div class="table-scroll"><table class="admin-table" id="ordersTable"></table></div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <nav aria-label="Store"><a href="/">Back to the store</a></nav>
+  </footer>
+</div>
+</body>
+</html>
