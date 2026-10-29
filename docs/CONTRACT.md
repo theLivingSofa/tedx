@@ -19,7 +19,7 @@ Reference material (read-only, local to this sandbox — never copy into the rep
 
 ## 1. Ground rules
 
-- Runtime: Node.js ≥ 20 on Vercel serverless functions. **CommonJS** everywhere (`require` / `module.exports`).
+- Runtime: Node.js ≥ 22 on Vercel serverless functions. **CommonJS** everywhere (`require` / `module.exports`).
 - Frontend: plain HTML, CSS, vanilla JS. No frameworks, no bundler, no inline `<script>` code and no inline
   event-handler attributes (`onload=`, `onclick=`, …) — CSP forbids them. Inline `style=""` attributes are
   allowed but prefer classes.
@@ -418,7 +418,7 @@ async listOrders({ statuses, olderThan /* Date */, limit = 25 })  // oldest firs
 _resetForTests()                    // clears caches & local store pointer
 ```
 Sheets backend: auth via `auth.JWT` / `GoogleAuth` with scope `https://www.googleapis.com/auth/spreadsheets`,
-retries with exponential backoff + jitter (max 5 attempts, base 500 ms) on 429, 500, 502, 503, 504 and network
+retries with exponential backoff + jitter (max 4 attempts, base 400 ms, 8 s per-request timeout) on 429, 500, 502, 503, 504 and network
 errors. Order rows are located by scanning column A. Local backend: one JSON file `orders.json` under
 `LOCAL_DATA_DIR`, written atomically (write temp + rename); catalogue from `data/products.json`; config from env.
 
@@ -548,7 +548,7 @@ JSON shape: `{ "products": [ { "sku", "name", "price", "category", "apparel", "p
 ## 9. Infrastructure
 
 - `vercel.json`: `"cleanUrls": true`; `"crons": [{ "path": "/api/reconcile", "schedule": "0 3 * * *" }]`
-  (daily — Hobby-plan compatible; README explains raising frequency on Pro); function `maxDuration` 10 s
+  (daily — Hobby-plan compatible; README explains raising frequency on Pro); function `maxDuration` 30 s
   (reconcile 60 s); security headers on all routes; CSP on HTML:
   `default-src 'self'; script-src 'self' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline';
   img-src 'self' data: blob: https://drive.google.com https://*.googleusercontent.com https://*.cashfree.com;
@@ -562,6 +562,17 @@ JSON shape: `{ "products": [ { "sku", "name", "price", "category", "apparel", "p
 - `scripts/dev-server.js` (`npm run dev`, port `PORT` or 3000): loads `.env.local` then `.env` if present (tiny
   parser, no dependency), serves `public/` with clean URLs, routes `/api/<name>` to `api/<name>.js`, applies
   the headers from `vercel.json`, and must not expose anything outside `public/`.
-- `package.json` scripts: `dev`, `test` (`node --test tests/`), `setup-sheet`, `check` (syntax check all JS
+- `package.json` scripts: `dev`, `test` (`node --test "tests/**/*.test.js"`), `setup-sheet`, `check` (syntax check all JS
   via `node --check`).
 - `.gitignore`: `node_modules/`, `.env*` except `!.env.example`, `.vercel/`, `.data/`, `*.log`, `.DS_Store`.
+
+## 10. Orchestrator decisions after Phase 1 (binding)
+
+1. Node ≥ 22 (`@googleapis/sheets@18` requires it; Node 20 is end-of-life). `npm test` = `node --test "tests/**/*.test.js"`.
+2. `GET /api/catalogue` `payment.mode` maps `'unavailable'` to `'cashfree'` (create-order then answers 503 `payments_unavailable`).
+3. `fields` may also appear on `409 item_unavailable` (keyed `items[i]`), as 5.2 says.
+4. `resolveStatus` precedence for gateway `ACTIVE`: the expiry check (`now > expiresAt + 15 min` → Expired) runs before the failed-payment check. An `Expired` order only ever moves to `Paid` (matching amount), which also sets `reviewFlag: PAID_AFTER_EXPIRY`. "Latest payment" = newest by payment time, else last array element.
+5. `createdAt` and `orderId` are immutable in `updateOrder`.
+6. `STORE_OPEN` and `MAX_QUANTITY_PER_SKU` are also accepted as env defaults (Config tab wins).
+7. The webhook answers 503 on storage/sync failure so Cashfree retries delivery.
+8. `SITE_URL` should be set for the Production environment only; preview deployments derive their own origin.
