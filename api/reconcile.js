@@ -10,6 +10,8 @@ const sheets = require('../lib/sheets');
 const { STATUSES, syncOrder, storageUnavailable, isHttpError } = require('../lib/orders');
 
 const MAX_PER_RUN = 25;
+const EXPIRED_PER_RUN = 10;
+const EXPIRED_RECHECK_MS = 3 * 24 * 60 * 60 * 1000; // re-check Expired orders for 3 days
 const TIME_BUDGET_MS = 45000; // function maxDuration is 60 s
 
 function minAgeMinutes() {
@@ -35,11 +37,16 @@ module.exports = withErrorHandling(async (req, res) => {
   const started = Date.now();
   let orders;
   try {
-    orders = await sheets.listOrders({
-      statuses: [STATUSES.AWAITING, STATUSES.FAILED],
-      olderThan: new Date(started - minAgeMinutes() * 60000),
-      limit: MAX_PER_RUN
-    });
+    const olderThan = new Date(started - minAgeMinutes() * 60000);
+    orders = await sheets.listOrders({ statuses: [STATUSES.AWAITING, STATUSES.FAILED], olderThan, limit: MAX_PER_RUN });
+    // A payment that was in progress when the order expired can still succeed at the gateway: keep
+    // re-checking recently expired orders for a few days (newest first) so they turn Paid on their own.
+    const expired = await sheets.listOrders({ statuses: [STATUSES.EXPIRED], olderThan, limit: 5000 });
+    const recent = (expired || [])
+      .filter((o) => started - Date.parse(o.expiresAt) < EXPIRED_RECHECK_MS)
+      .slice(-EXPIRED_PER_RUN)
+      .reverse();
+    orders = (orders || []).slice(0, MAX_PER_RUN - recent.length).concat(recent);
   } catch (e) {
     if (isHttpError(e)) throw e;
     log('error', 'storage_failed', { op: 'listOrders', message: e && e.message });

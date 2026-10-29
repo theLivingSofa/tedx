@@ -576,3 +576,20 @@ JSON shape: `{ "products": [ { "sku", "name", "price", "category", "apparel", "p
 6. `STORE_OPEN` and `MAX_QUANTITY_PER_SKU` are also accepted as env defaults (Config tab wins).
 7. The webhook answers 503 on storage/sync failure so Cashfree retries delivery.
 8. `SITE_URL` should be set for the Production environment only; preview deployments derive their own origin.
+
+## 11. Changes after the Phase 3 security review (binding)
+
+1. `paymentMode()` also returns `'unavailable'` for mock when Google Sheets is configured unless
+   `ALLOW_MOCK_WITH_SHEETS=true`; `VERCEL_ENV` is compared case-insensitively.
+2. New orders get `reviewFlag` `TEST_PAYMENT_MOCK` (mock) or `TEST_PAYMENT_SANDBOX` (Cashfree sandbox).
+   `reviewFlag` holds several flags joined by ` | ` (`lib/orders.js` `addFlag`); later flags never erase earlier ones.
+   A Paid transition after `AMOUNT_MISMATCH` adds `RESOLVED_PAID_WITH_MATCHING_AMOUNT`; Expired → Paid adds `PAID_AFTER_EXPIRY`.
+3. Storage (`mergeOrder`) never changes `status`, `paidAt`, `paymentId`, `paymentMethod`, `total`, `tokenHash`, `items`
+   once a row is Paid, and `emailSentAt` is first-write-wins; only the request whose email claim landed sends the receipt.
+4. Sheets updates re-check column A of the target row before and after writing; a duplicate Order ID or a moved row is
+   a storage error (503) and is logged (`orders_row_overwritten`). `setup-sheet` adds a warning-only protection to Orders.
+5. Gateway amounts count as a match only if they are positive with at most two decimals and equal the stored total in paise.
+6. Reconcile also re-checks up to 10 `Expired` orders whose `expiresAt` is within the last 3 days (newest first);
+   order-status refreshes recently expired orders too (same 15 s throttle). verify-payment syncs at most once per 2 s per order.
+7. order-status accepts the token in the `X-Order-Token` header (preferred; `?token=` still accepted). Order page links
+   carry the token in the URL fragment: `/order?id=<id>#token=<token>`. `merch:lastOrder` expires after 7 days.

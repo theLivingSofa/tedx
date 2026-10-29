@@ -144,15 +144,25 @@
   }
 
   var LAST_ORDER_KEY = 'merch:lastOrder';
+  var LAST_ORDER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // forget the last order after a week (shared computers)
 
   function saveLastOrder(orderId, token) {
-    storageSet('localStorage', LAST_ORDER_KEY, { orderId: orderId, token: token });
+    storageSet('localStorage', LAST_ORDER_KEY, { orderId: orderId, token: token, savedAt: Date.now() });
   }
 
   function readLastOrder() {
     var v = storageGet('localStorage', LAST_ORDER_KEY);
     if (!v || typeof v.orderId !== 'string' || typeof v.token !== 'string') return null;
+    if (typeof v.savedAt !== 'number' || Date.now() - v.savedAt > LAST_ORDER_MAX_AGE_MS) {
+      storageRemove('localStorage', LAST_ORDER_KEY);
+      return null;
+    }
     return v;
+  }
+
+  /** Link to the order status page. The token goes in the #fragment, which browsers never send to servers. */
+  function orderUrl(orderId, token) {
+    return pageUrl('/order', { id: orderId }) + (token ? '#token=' + encodeURIComponent(token) : '');
   }
 
   function brand() {
@@ -179,6 +189,7 @@
     scrollIntoView: scrollIntoView,
     saveLastOrder: saveLastOrder,
     readLastOrder: readLastOrder,
+    orderUrl: orderUrl,
     brand: brand
   };
 })();

@@ -418,7 +418,7 @@ describe('mock payment flow', () => {
     const rec = await ctx.sheets.getOrder(o.orderId);
     assert.equal(rec.status, 'Paid');
     assert.equal(rec.gatewayStatus, 'MOCK_PAID');
-    assert.ok(!rec.reviewFlag);
+    assert.equal(rec.reviewFlag, 'TEST_PAYMENT_MOCK', 'mock orders are flagged as test payments');
 
     const s = await orderStatus(o.orderId, o.token);
     assert.equal(s.body.status, 'Paid');

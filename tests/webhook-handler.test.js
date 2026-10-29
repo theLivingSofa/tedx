@@ -162,7 +162,8 @@ describe('create-order → Cashfree Create Order', () => {
     assert.equal(r.body.error.code, 'gateway_error');
     const failed = await ctx.sheets.listOrders({ statuses: ['Failed'], olderThan: new Date(Date.now() + 60000), limit: 25 });
     assert.equal(failed.length, 1);
-    assert.equal(failed[0].reviewFlag, 'GATEWAY_CREATE_FAILED');
+    assert.match(failed[0].reviewFlag, /(^|\| )GATEWAY_CREATE_FAILED/);
+    assert.match(failed[0].reviewFlag, /TEST_PAYMENT_SANDBOX/, 'sandbox orders are flagged as test payments');
     assert.ok(!r.text.includes(SECRET));
   });
 
@@ -197,7 +198,7 @@ describe('POST /api/cashfree-webhook', () => {
     assert.equal(rec.paymentId, '5114910392481');
     assert.equal(rec.paymentMethod, 'upi');
     assert.ok(rec.paidAt && !Number.isNaN(Date.parse(rec.paidAt)));
-    assert.ok(!rec.reviewFlag);
+    assert.equal(rec.reviewFlag, 'TEST_PAYMENT_SANDBOX', 'only the sandbox test-payment flag');
 
     await sleep(30);
     assert.equal(stub.emails.length, 1, 'one receipt email');
@@ -229,7 +230,7 @@ describe('POST /api/cashfree-webhook', () => {
     assert.equal(r.status, 200);
     const rec = await ctx.sheets.getOrder(o.orderId);
     assert.notEqual(rec.status, 'Paid');
-    assert.match(rec.reviewFlag, /^AMOUNT_MISMATCH/);
+    assert.match(rec.reviewFlag, /(^|\| )AMOUNT_MISMATCH/);
     await sleep(20);
     assert.equal(stub.emails.length, 0);
   });
@@ -355,7 +356,8 @@ describe('verify-payment in cashfree mode (server-to-server Get Order)', () => {
     const g = stub.gateway.get(o.orderId);
     g.payments = [{ cf_payment_id: '111', payment_status: 'FAILED', payment_group: 'upi' }];
 
-    const verify = () => h.postJson(ctx.api('verify-payment'), '/api/verify-payment', { orderId: o.orderId, token: o.token });
+    // Reset the per-order 2 s verify throttle so each call re-checks the gateway.
+    const verify = () => { const v = ctx.api('verify-payment'); v._resetThrottle(); return h.postJson(v, '/api/verify-payment', { orderId: o.orderId, token: o.token }); };
 
     let r = await verify();
     assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -383,6 +385,6 @@ describe('verify-payment in cashfree mode (server-to-server Get Order)', () => {
     const r = await h.postJson(ctx.api('verify-payment'), '/api/verify-payment', { orderId: o.orderId, token: o.token });
     assert.equal(r.status, 200);
     assert.notEqual(r.body.status, 'Paid');
-    assert.match((await ctx.sheets.getOrder(o.orderId)).reviewFlag, /^AMOUNT_MISMATCH/);
+    assert.match((await ctx.sheets.getOrder(o.orderId)).reviewFlag, /(^|\| )AMOUNT_MISMATCH/);
   });
 });

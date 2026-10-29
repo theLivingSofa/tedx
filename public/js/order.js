@@ -1,5 +1,5 @@
 /*
- * Order status page (/order?id=…&token=…), CONTRACT section 7:
+ * Order status page (/order?id=…#token=…, or the older ?token=…), CONTRACT section 7:
  * token from the query or localStorage['merch:lastOrder'] when ids match; polls GET /api/order-status every 4 s,
  * backing off to 15 s after 1 minute, stopping after 10 minutes or on a terminal status (Paid / Expired).
  */
@@ -50,7 +50,7 @@
     var actions = [storeLink()];
     if (last && last.orderId !== orderId && M.validate.isOrderId(last.orderId)) {
       actions.unshift(el('a', {
-        class: 'receipt-button', href: U.pageUrl('/order', { id: last.orderId, token: last.token }),
+        class: 'receipt-button', href: U.orderUrl(last.orderId, last.token),
         text: 'View your most recent order (' + last.orderId + ')'
       }));
     }
@@ -230,7 +230,13 @@
 
     var q = U.params();
     orderId = (q.get('id') || '').trim();
-    token = (q.get('token') || '').trim();
+    // Token from the #fragment (current links), else ?token= (older links), else this browser's last order.
+    var hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+    token = (hash.get('token') || q.get('token') || '').trim();
+    if (q.get('token') && window.history && window.history.replaceState) {
+      // Move a query-string token into the fragment so it is not re-sent to the server on reload.
+      try { window.history.replaceState(null, '', U.orderUrl(orderId, token)); } catch (e) { /* ignore */ }
+    }
     if (!token) {
       var last = U.readLastOrder();
       if (last && last.orderId === orderId) token = last.token;

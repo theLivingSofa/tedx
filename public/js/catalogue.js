@@ -33,7 +33,9 @@
   function safeImageUrl(url) {
     if (typeof url !== 'string') return '';
     url = url.trim();
-    if (/^\/(?!\/)/.test(url) || /^https:\/\//i.test(url)) return url;
+    // Same rules as the server: a local /images/ file or an https:// URL, nothing else (no //host, /\host, ..).
+    if (/^\/images\/[A-Za-z0-9._\/-]+$/.test(url) && url.indexOf('..') === -1 && url.indexOf('//') === -1) return url;
+    if (/^https:\/\/[^\s"'<>\\]+$/i.test(url)) return url;
     return '';
   }
 

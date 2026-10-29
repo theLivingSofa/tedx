@@ -40,7 +40,17 @@ module.exports = withErrorHandling(async (req, res) => {
     toleranceSeconds: tolerance()
   });
   if (!ok) {
-    log('warn', 'webhook_invalid_signature', {});
+    // Diagnose without weakening the check: would the signature be valid if the clock were ignored?
+    // A "stale_timestamp" reason on real Cashfree deliveries would point at clock skew or a unit change.
+    const ts = header(req, 'x-webhook-timestamp');
+    const sigOnly = /^\d{1,16}$/.test(ts) && verifyWebhookSignature({
+      rawBody, signature: header(req, 'x-webhook-signature'), timestamp: ts,
+      secret: (process.env.CASHFREE_SECRET_KEY || '').trim(), toleranceSeconds: tolerance(), now: Number(ts)
+    });
+    log('warn', 'webhook_invalid_signature', {
+      reason: sigOnly ? 'stale_timestamp' : 'bad_signature',
+      skewSeconds: /^\d{1,16}$/.test(ts) ? Math.round((Date.now() - Number(ts)) / 1000) : null
+    });
     throw new HttpError(401, 'invalid_signature', 'Invalid webhook signature.');
   }
 

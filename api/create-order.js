@@ -13,7 +13,7 @@ const { priceOrder, summariseItems } = require('../lib/pricing');
 const { generateOrderId, generateToken, hashToken } = require('../lib/tokens');
 const sheets = require('../lib/sheets');
 const cashfree = require('../lib/cashfree');
-const { STATUSES, customerIdFor, storageUnavailable, isHttpError } = require('../lib/orders');
+const { STATUSES, customerIdFor, storageUnavailable, isHttpError, addFlag } = require('../lib/orders');
 const brand = require('../public/config/brand.js');
 
 const AVAILABILITY_CODES = new Set(['unknown_sku', 'inactive', 'out_of_stock', 'insufficient_stock']);
@@ -118,7 +118,7 @@ module.exports = withErrorHandling(async (req, res) => {
     paidAt: '',
     expiresAt,
     emailSentAt: '',
-    reviewFlag: ''
+    reviewFlag: cashfree.testPaymentFlag(mode)
   };
   await storage('appendOrder', () => sheets.appendOrder(record));
 
@@ -137,7 +137,7 @@ module.exports = withErrorHandling(async (req, res) => {
   } catch (e) {
     log('warn', 'gateway_create_failed', { orderId, upstreamStatus: e && e.upstreamStatus, code: e && e.cfCode });
     try {
-      await sheets.updateOrder(orderId, { status: STATUSES.FAILED, reviewFlag: 'GATEWAY_CREATE_FAILED' });
+      await sheets.updateOrder(orderId, { status: STATUSES.FAILED, reviewFlag: addFlag(record.reviewFlag, 'GATEWAY_CREATE_FAILED') });
     } catch (_) {
       log('error', 'storage_failed', { op: 'updateOrder', orderId });
     }

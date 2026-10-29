@@ -178,21 +178,27 @@ function explain(err) {
 // ---------------------------------------------------------------------------------------------------------
 
 /** Inspect the spreadsheet (read-only) and work out what to do for each tab. */
+const ORDERS_PROTECTION = 'Written by the merch store. Do not sort, insert or delete rows here; use Data > Filter views or a separate tab with =SORT(Orders!A:Y).';
+
 async function inspect(client, spreadsheetId) {
   const meta = await retry(() =>
     client.spreadsheets.get({
       spreadsheetId,
-      fields: 'properties.title,sheets.properties(sheetId,title,gridProperties.frozenRowCount)'
+      fields: 'properties.title,sheets.properties(sheetId,title,gridProperties.frozenRowCount),sheets.protectedRanges.description'
     })
   );
-  const sheetsMeta = (meta.data.sheets || []).map((s) => s.properties);
+  const sheetsMeta = (meta.data.sheets || []).map((s) => ({
+    ...s.properties,
+    protectedDescriptions: (s.protectedRanges || []).map((r) => r.description || '')
+  }));
   const plan = { title: meta.data.properties && meta.data.properties.title, tabs: [] };
 
   for (const tab of TABS) {
     const props = sheetsMeta.find((p) => p.title === tab.title) ||
       sheetsMeta.find((p) => String(p.title).toLowerCase() === tab.title.toLowerCase());
     const t = { tab, exists: !!props, actualTitle: props ? props.title : tab.title, sheetId: props ? props.sheetId : null,
-      writeHeader: false, freeze: false, seed: false, warnings: [], errors: [] };
+      writeHeader: false, freeze: false, seed: false, warnings: [], errors: [],
+      protect: tab.title === 'Orders' && !(props && props.protectedDescriptions.includes(ORDERS_PROTECTION)) };
     if (props && props.title !== tab.title) {
       t.warnings.push(`Tab is named "${props.title}"; rename it to exactly "${tab.title}".`);
     }
@@ -255,9 +261,11 @@ function describe(plan, { offline }) {
     if (t.freeze) acts.push('freeze row 1');
     if (t.seed) acts.push(`seed ${tab.seedLabel()}`);
     if (t.skippedSeed) acts.push('already has data — leaving it untouched');
+    if (t.protect) acts.push('add an edit warning (do not sort/insert rows)');
     if (offline) {
       acts.length = 0;
       acts.push('create tab if missing', 'write header row if row 1 is empty', 'freeze row 1');
+      if (tab.title === 'Orders') acts.push('add an edit warning (do not sort/insert rows)');
       if (tab.seed) acts.push(`seed ${tab.seedLabel()} only if the tab has no data rows`);
     }
     lines.push(`  ${tab.title.padEnd(9)} ${acts.length ? acts.join('; ') : 'nothing to do'}`);
@@ -331,6 +339,13 @@ async function apply(client, spreadsheetId, plan) {
       });
     }
   }
+  for (const t of plan.tabs) {
+    if (t.protect && t.sheetId !== null && t.sheetId !== undefined) {
+      // Warning-only protection: anyone editing the Orders tab by hand (sorting, inserting rows) is warned
+      // first. The store writes rows by position, so sorting while an order is being updated can corrupt rows.
+      fmt.push({ addProtectedRange: { protectedRange: { range: { sheetId: t.sheetId }, description: ORDERS_PROTECTION, warningOnly: true } } });
+    }
+  }
   if (fmt.length) {
     await retry(() => client.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: fmt } }));
   }
@@ -347,8 +362,9 @@ function nextSteps() {
     '  4. Edit products in the Catalogue tab (sku, name, price, category, apparel, printing, imageUrl, active, stock).',
     '     Blank stock = unlimited, 0 = sold out, active FALSE hides a product. Changes appear within about a minute.',
     '  5. Config tab: PRINTING_CHARGE (₹ per printed item), STORE_OPEN (TRUE/FALSE), MAX_QUANTITY_PER_SKU (1–20).',
-    '  6. Do not rename, reorder or insert columns in the Orders tab — the app writes it by position.',
-    '     Consider protecting it (Data → Protect sheets and ranges) so only organisers can edit.'
+    '  6. Do not rename, reorder or insert columns in the Orders tab, and do not sort or insert/delete rows there:',
+    '     the app writes rows by position. To view orders sorted, use Data → Filter views (they do not move rows)',
+    '     or a separate tab containing =SORT(Orders!A:Y, 2, FALSE). The Orders tab now shows a warning when edited.'
   ].join('\n');
 }
 

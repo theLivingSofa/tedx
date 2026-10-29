@@ -52,7 +52,7 @@
     try {
       res = await fetch(path, {
         method: method,
-        headers: body !== undefined ? { 'Content-Type': 'application/json', Accept: 'application/json' } : { Accept: 'application/json' },
+        headers: Object.assign(body !== undefined ? { 'Content-Type': 'application/json', Accept: 'application/json' } : { Accept: 'application/json' }, opts.headers || {}),
         body: body !== undefined ? JSON.stringify(body) : undefined,
         credentials: 'same-origin',
         cache: opts.cache || 'no-store'
@@ -77,8 +77,9 @@
       return request('POST', '/api/verify-payment', { orderId: orderId, token: token });
     },
     orderStatus: function (orderId, token) {
-      return request('GET', '/api/order-status?id=' + encodeURIComponent(orderId) +
-        '&token=' + encodeURIComponent(token));
+      // The token travels in a header, not the URL, so it never lands in request logs or browser history.
+      return request('GET', '/api/order-status?id=' + encodeURIComponent(orderId), undefined,
+        { headers: { 'X-Order-Token': token } });
     },
     mockPay: function (orderId, token, outcome) {
       return request('POST', '/api/mock-pay', { orderId: orderId, token: token, outcome: outcome });

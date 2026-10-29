@@ -211,7 +211,7 @@
 
   function statusLink(order) {
     return el('a', {
-      class: 'text-link', href: U.pageUrl('/order', { id: order.orderId, token: order.token }), text: 'View order status'
+      class: 'text-link', href: U.orderUrl(order.orderId, order.token), text: 'View order status'
     });
   }
 
