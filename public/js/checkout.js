@@ -254,7 +254,7 @@
       ]);
     } else if (status === 'Awaiting Payment') {
       var closed = outcome === 'cancelled' || outcome === 'error';
-      showMessage('success', [
+      showMessage(closed ? 'info' : 'success', [
         el('strong', { text: closed ? 'The payment window was closed before the payment was completed.' : view.message }),
         orderLine(order, view),
         el('p', {

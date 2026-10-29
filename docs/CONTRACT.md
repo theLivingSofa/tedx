@@ -593,3 +593,6 @@ JSON shape: `{ "products": [ { "sku", "name", "price", "category", "apparel", "p
    order-status refreshes recently expired orders too (same 15 s throttle). verify-payment syncs at most once per 2 s per order.
 7. order-status accepts the token in the `X-Order-Token` header (preferred; `?token=` still accepted). Order page links
    carry the token in the URL fragment: `/order?id=<id>#token=<token>`. `merch:lastOrder` expires after 7 days.
+8. Frontend: the Cashfree sandbox note is shown only in cashfree mode with `environment === 'sandbox'`; in mock mode
+   the "DEMO MODE" note replaces it (the sandbox note's "use Cashfree test details" text would be wrong there).
+   The Cashfree SDK script is loaded `async` (not `defer`) so a slow sdk.cashfree.com cannot block the page.

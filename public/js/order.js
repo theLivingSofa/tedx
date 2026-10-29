@@ -173,7 +173,7 @@
 
   function checkedAt() {
     try {
-      return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return new Date().toLocaleTimeString('en-IN', { timeStyle: 'short' });
     } catch (e) {
       return new Date().toLocaleTimeString();
     }

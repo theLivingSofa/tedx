@@ -44,6 +44,11 @@
   --fs-nav-btn: 10px;
   --fs-button: 15px;
   --fs-total: 24px;
+  --fs-product-name: 16px;
+  --fs-popup-title: 22px;
+  --fs-qty-button: 18px;
+  --fs-close: 24px;
+  --fs-pay-name: 22px;
 
   /* Layout */
   --wrap-max: 1240px;
@@ -61,6 +66,8 @@
   --radius-card: 12px;
   --radius-product: 10px;
   --radius-btn: 8px;
+  --radius-image: 8px;
+  --radius-small: 6px;
   --radius-input: 7px;
   --radius-popup: 16px;
   --radius-pill: 999px;

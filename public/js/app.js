@@ -76,7 +76,7 @@
   function updatePaymentPanel(data) {
     var payment = data.payment || {};
     $('demoNote').hidden = payment.mode !== 'mock';
-    $('sandboxNote').hidden = !(payment.environment === 'sandbox' && payment.mode !== 'mock');
+    $('sandboxNote').hidden = !(payment.environment === 'sandbox' && payment.mode !== 'mock'); // demo mode shows its own note
     $('storeClosedNote').hidden = data.storeOpen !== false;
   }
 
