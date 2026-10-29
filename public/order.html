@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Order status – Merch Store – TEDxIIMRohtak</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/config/brand.js" defer></script>
+  <script src="/js/util.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/validate.js" defer></script>
+  <script src="/js/receipt.js" defer></script>
+  <script src="/js/order.js" defer></script>
+</head>
+<body class="page-order">
+<nav class="side-nav" aria-label="Site">
+  <div class="nav-brand" id="navBrand">TEDx</div>
+  <a class="nav-link" id="navStore" href="/"><span class="nav-icon" aria-hidden="true">←</span><span>Store</span></a>
+</nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="tedx" id="heroMark">TEDx</div>
+    <h1>Order status</h1>
+    <p id="heroIntro">Track your merchandise order. This page checks the payment gateway automatically.</p>
+  </header>
+
+  <main id="orderRoot">
+    <section class="card" aria-labelledby="statusTitle">
+      <h2 id="statusTitle">Checking your order…</h2>
+      <div class="catalogue-status" role="status"><span class="spinner" aria-hidden="true"></span> Loading order details…</div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

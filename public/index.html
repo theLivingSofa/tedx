@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Merch Store – TEDxIIMRohtak</title>
+  <meta name="description" content="Order official TEDxIIMRohtak merchandise and pay securely online.">
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/config/brand.js" defer></script>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async></script>
+  <script src="/js/util.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/validate.js" defer></script>
+  <script src="/js/dialog.js" defer></script>
+  <script src="/js/cart.js" defer></script>
+  <script src="/js/catalogue.js" defer></script>
+  <script src="/js/cart-view.js" defer></script>
+  <script src="/js/receipt.js" defer></script>
+  <script src="/js/checkout.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#details">Skip to the order form</a>
+
+<nav class="side-nav" id="sideNav" aria-label="Merchandise sections">
+  <div class="nav-brand" id="navBrand">TEDx</div>
+</nav>
+
+<button type="button" id="openCart" class="floating-cart" aria-haspopup="dialog" aria-controls="cartOverlay">Cart <span class="cart-count" id="floatingCartCount">0</span></button>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="tedx" id="heroMark">TEDx</div>
+    <h1 id="heroHeading">IIM Rohtak Merchandise</h1>
+    <p id="heroIntro">Many Voices, One Future. Select your products, sizes and optional name printing. Product SKUs are shown for accurate order tracking; your total updates automatically.</p>
+  </header>
+
+  <main>
+    <form id="orderForm" novalidate>
+      <section class="card" id="details" aria-labelledby="detailsTitle">
+        <h2 id="detailsTitle">1. Your details</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="name">Full name *</label>
+            <input id="name" name="name" type="text" autocomplete="name" maxlength="80" required aria-required="true">
+            <div class="field-error" id="name-error" hidden></div>
+          </div>
+          <div class="field">
+            <label for="roll">Roll number *</label>
+            <input id="roll" name="roll" type="text" autocomplete="off" maxlength="30" autocapitalize="characters" required aria-required="true">
+            <div class="field-error" id="roll-error" hidden></div>
+          </div>
+          <div class="field">
+            <label for="email">Email address *</label>
+            <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-required="true">
+            <div class="field-error" id="email-error" hidden></div>
+          </div>
+          <div class="field">
+            <label for="phone">Contact number *</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="16" required aria-required="true">
+            <div class="field-error" id="phone-error" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="merchandise" aria-labelledby="merchTitle">
+        <h2 id="merchTitle">2. Choose your merchandise</h2>
+        <p class="small">Set quantity to 0 for items you do not want. For apparel, choose a size. If you order multiple pieces of the same apparel item in different sizes or need different names printed, contact the organisers for help with the order.</p>
+        <div id="products"></div>
+        <p class="small disclaimer"><b>Product images disclaimer:</b><span id="disclaimerText"> All product images and designs are for illustrative purposes only. Actual products may vary slightly from the illustrations in colour, appearance, print placement, material, and other design details.</span></p>
+      </section>
+
+      <section class="card" id="payment" aria-labelledby="payTitle">
+        <h2 id="payTitle">3. Pay securely</h2>
+        <div class="payment-box">
+          <div class="pay-visual" aria-hidden="true">
+            <svg class="pay-lock" viewBox="0 0 48 48" width="44" height="44" focusable="false">
+              <path d="M24 3 7 9v12c0 11 7.3 20.4 17 24 9.7-3.6 17-13 17-24V9L24 3Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+              <rect x="16.5" y="21" width="15" height="12" rx="2" fill="currentColor"/>
+              <path d="M19.5 21v-3.5a4.5 4.5 0 0 1 9 0V21" fill="none" stroke="currentColor" stroke-width="3"/>
+            </svg>
+            <div class="pay-visual-kicker">Secure checkout by</div>
+            <div class="pay-visual-name">Cashfree Payments</div>
+            <ul class="pay-methods">
+              <li>UPI</li><li>Cards</li><li>Net banking</li><li>Wallets</li>
+            </ul>
+          </div>
+          <div>
+            <p class="demo-note" id="demoNote" hidden><strong>DEMO MODE — simulated payments, no real money.</strong> Payments on this site are simulated for testing; nothing is charged.</p>
+            <h3 class="pay-heading">Pay securely with Cashfree</h3>
+            <p>Accepted payment methods: <strong>UPI, cards, net banking and wallets</strong>.</p>
+            <p>When you select <strong>Pay securely</strong>, a secure payment window opens for the exact order total shown at the bottom of the page. Your order is confirmed automatically once the payment gateway verifies your payment — no transaction reference number needed.</p>
+            <p class="note" id="sandboxNote" hidden><b>Sandbox mode — no real money is charged.</b> Use Cashfree test payment details.</p>
+            <p class="note note-error" id="storeClosedNote" hidden><b>The store is not accepting orders right now.</b> Please check back later.</p>
+          </div>
+        </div>
+        <div class="field notes-field">
+          <label for="notes">Additional notes (optional)</label>
+          <textarea id="notes" name="notes" rows="3" maxlength="500" placeholder="Any order-related notes" data-hint="notes-hint" aria-describedby="notes-hint"></textarea>
+          <div class="hint" id="notes-hint">Up to 500 characters.</div>
+          <div class="field-error" id="notes-error" hidden></div>
+        </div>
+        <button type="submit" class="pay-button" data-pay-button>Pay securely</button>
+        <p class="small">Do not close or refresh this page while the payment window is open. You will get an order ID and a downloadable receipt once the payment is confirmed.</p>
+      </section>
+
+      <div id="message" class="message" role="status" aria-live="polite" tabindex="-1"></div>
+    </form>
+  </main>
+</div>
+
+<div class="summary">
+  <div class="summary-inner">
+    <div>
+      <div class="total-label">LIVE ORDER TOTAL</div>
+      <div class="total" id="grandTotal">₹0</div>
+      <div class="total-label" id="itemCount" aria-live="polite">0 items in cart</div>
+    </div>
+    <button type="submit" form="orderForm" data-pay-button>Pay securely</button>
+  </div>
+</div>
+
+<div id="cartOverlay" class="overlay" hidden>
+  <div class="popup cart-popup" role="dialog" aria-modal="true" aria-labelledby="cartPopupTitle" tabindex="-1">
+    <div class="popup-head">
+      <h2 id="cartPopupTitle">Your cart</h2>
+      <button type="button" class="popup-close" id="closeCart" aria-label="Close cart">×</button>
+    </div>
+    <div id="cartContents" class="cart-empty">Your cart is empty. Add products to get started.</div>
+    <div class="cart-popup-total"><span>Cart total</span><strong id="cartTotal">₹0</strong></div>
+    <button type="button" id="continueCheckout" class="checkout-button">Continue to checkout</button>
+  </div>
+</div>
+
+<div id="mockOverlay" class="overlay" hidden>
+  <div class="popup mock-popup" role="dialog" aria-modal="true" aria-labelledby="mockPopupTitle" tabindex="-1">
+    <div class="popup-head">
+      <h2 id="mockPopupTitle">Demo payment</h2>
+      <button type="button" class="popup-close" id="closeMock" aria-label="Close demo payment window">×</button>
+    </div>
+    <div id="mockFrameHost" class="mock-frame-host"></div>
+  </div>
+</div>
+</body>
+</html>

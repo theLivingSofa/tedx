@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Demo payment – no real money</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/config/brand.js" defer></script>
+  <script src="/js/util.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/mock-checkout.js" defer></script>
+</head>
+<body class="mock-page">
+  <main>
+    <p class="mock-badge">DEMO PAYMENT — no real money</p>
+    <h1>Simulated checkout</h1>
+    <p class="small">This window stands in for the Cashfree payment page while the store runs in demo mode. Nothing is charged.</p>
+    <div id="mockDetails" aria-live="polite">
+      <p class="hint" id="mockWaiting">Waiting for order details…</p>
+      <div id="mockOrder" hidden>
+        <div class="total-label">Order ID</div>
+        <div><strong id="mockOrderId"></strong></div>
+        <div class="total-label mock-amount-label">Amount</div>
+        <div class="mock-amount" id="mockAmount"></div>
+      </div>
+    </div>
+    <div class="mock-actions">
+      <button type="button" id="mockSuccess" disabled>Simulate successful payment</button>
+      <button type="button" id="mockFailure" class="secondary" disabled>Simulate failed payment</button>
+      <button type="button" id="mockCancel" class="ghost">Cancel</button>
+    </div>
+    <div id="mockMessage" class="message" role="status" aria-live="polite"></div>
+  </main>
+</body>
+</html>
