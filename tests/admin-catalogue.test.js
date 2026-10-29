@@ -123,7 +123,7 @@ describe('/api/admin-catalogue', () => {
   const sheetsEnv = { GOOGLE_SHEET_ID: 'sheet', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'sa@example.iam.gserviceaccount.com', GOOGLE_PRIVATE_KEY: 'x' };
 
   async function signIn() {
-    const r = await h.postJson(h.loadHandler('admin-login'), '/api/admin-login', { password: PASSWORD });
+    const r = await h.postJson(h.loadHandler('admin-auth'), '/api/admin-auth?op=login', { password: PASSWORD });
     cookie = [].concat(r.headers['set-cookie'])[0].split(';')[0];
   }
   const get = () => h.invoke(api, { method: 'GET', url: '/api/admin-catalogue', headers: { cookie } });

@@ -235,7 +235,7 @@
     $('loginBtn').disabled = true;
     setMessage($('loginMessage'), 'info', 'Signing in…');
     try {
-      await call('POST', '/api/admin-login', { password: input.value });
+      await call('POST', '/api/admin-auth?op=login', { password: input.value });
       input.value = '';
       setMessage($('loginMessage'), '', '');
       // Only same-site admin pages are allowed as a return target.
@@ -269,7 +269,7 @@
     if (next !== again) { passwordFieldError('confirmPassword', 'The two new passwords do not match.'); $('confirmPassword').focus(); return; }
     $('passwordBtn').disabled = true;
     try {
-      await call('POST', '/api/admin-password', { currentPassword: current, newPassword: next });
+      await call('POST', '/api/admin-auth?op=password', { currentPassword: current, newPassword: next });
       $('passwordForm').reset();
       setMessage($('passwordMessage'), 'success', 'Password changed. Use the new password next time you sign in.');
     } catch (err) {
@@ -283,7 +283,7 @@
   }
 
   async function logout() {
-    try { await call('POST', '/api/admin-logout', {}); } catch (e) { /* ignore */ }
+    try { await call('POST', '/api/admin-auth?op=logout', {}); } catch (e) { /* ignore */ }
     state.data = null;
     show('login');
   }

@@ -156,15 +156,16 @@ describe('/api/admin-* handlers (demo mode)', () => {
     return c.body.orderId;
   }
 
-  const login = (password = PASSWORD, ip) => h.postJson(api('admin-login'), '/api/admin-login', { password }, ip ? { ip } : {});
+  const login = (password = PASSWORD, ip) => h.postJson(api('admin-auth'), '/api/admin-auth?op=login', { password }, ip ? { ip } : {});
   const cookieFrom = (r) => ([].concat(r.headers['set-cookie'] || [])[0] || '').split(';')[0];
   const summary = (cookie) => h.invoke(api('admin-summary'), { method: 'GET', url: '/api/admin-summary', headers: { cookie } });
 
   it('does not exist when ADMIN_PASSWORD is not set', async () => {
     boot();
-    for (const name of ['admin-login', 'admin-logout', 'admin-handover', 'admin-password']) {
-      const r = await h.postJson(api(name), `/api/${name}`, {});
-      assert.equal(r.status, 404, name);
+    for (const [name, url] of [['admin-auth', '/api/admin-auth?op=login'], ['admin-auth', '/api/admin-auth?op=logout'],
+      ['admin-auth', '/api/admin-auth?op=password'], ['admin-handover', '/api/admin-handover']]) {
+      const r = await h.postJson(api(name), url, {});
+      assert.equal(r.status, 404, url);
     }
     assert.equal((await h.invoke(api('admin-summary'), { method: 'GET', url: '/api/admin-summary' })).status, 404);
   });
@@ -173,7 +174,7 @@ describe('/api/admin-* handlers (demo mode)', () => {
     boot({ ADMIN_PASSWORD: PASSWORD });
     assert.equal((await summary('__Host-merch_admin=1793280000000.' + 'x'.repeat(43))).status, 401);
     assert.equal((await h.postJson(api('admin-handover'), '/api/admin-handover', { orderId: 'TEDX-20261029-AAAAAA', handedOver: true })).status, 401);
-    assert.equal((await h.postJson(api('admin-password'), '/api/admin-password', { currentPassword: PASSWORD, newPassword: 'x'.repeat(20) })).status, 401);
+    assert.equal((await h.postJson(api('admin-auth'), '/api/admin-auth?op=password', { currentPassword: PASSWORD, newPassword: 'x'.repeat(20) })).status, 401);
   });
 
   it('rejects a wrong password and rate-limits guessing', async () => {
@@ -185,7 +186,7 @@ describe('/api/admin-* handlers (demo mode)', () => {
 
   it('refuses requests from other websites', async () => {
     boot({ ADMIN_PASSWORD: PASSWORD });
-    const r = await h.postJson(api('admin-login'), '/api/admin-login', { password: PASSWORD }, { headers: { origin: 'https://evil.example' } });
+    const r = await h.postJson(api('admin-auth'), '/api/admin-auth?op=login', { password: PASSWORD }, { headers: { origin: 'https://evil.example' } });
     assert.equal(r.status, 403);
   });
 
@@ -212,7 +213,7 @@ describe('/api/admin-* handlers (demo mode)', () => {
     assert.deepEqual(ho.body, { orderId, handedOver: true, note: 'collected by friend' });
     assert.deepEqual((await sheets.getHandover()).get(orderId), { handedOver: true, note: 'collected by friend' });
 
-    const out = await h.postJson(api('admin-logout'), '/api/admin-logout', {}, { headers: { cookie } });
+    const out = await h.postJson(api('admin-auth'), '/api/admin-auth?op=logout', {}, { headers: { cookie } });
     assert.match([].concat(out.headers['set-cookie'])[0], /Max-Age=0/);
   });
 
@@ -227,7 +228,7 @@ describe('/api/admin-* handlers (demo mode)', () => {
     boot({ ADMIN_PASSWORD: PASSWORD });
     const mine = cookieFrom(await login());
     const other = cookieFrom(await login());
-    const change = (body, cookie = mine) => h.postJson(api('admin-password'), '/api/admin-password', body, { headers: { cookie } });
+    const change = (body, cookie = mine) => h.postJson(api('admin-auth'), '/api/admin-auth?op=password', body, { headers: { cookie } });
 
     const wrong = await change({ currentPassword: 'wrong-password-123', newPassword: 'a brand new password' });
     assert.equal(wrong.status, 400);
