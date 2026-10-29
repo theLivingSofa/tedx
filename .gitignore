@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Local environment files (never commit secrets) — only the template is tracked
+.env*
+!.env.example
+
+# Vercel CLI / local data / logs / OS files
+.vercel/
+.data/
+*.log
+.DS_Store

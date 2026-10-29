@@ -1,0 +1,20 @@
+{
+  "name": "merch-store-tedxiimrohtak",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TEDxIIMRohtak merchandise store: static frontend + Vercel serverless API, Google Sheets storage, Cashfree payments.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "test": "node -e \"const fs=require('fs'),p=require('path');const w=d=>fs.existsSync(d)?fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?w(p.join(d,e.name)):/(^test(-.+)?|[._-]test)\\.c?js$/.test(e.name)?[p.join(d,e.name)]:[]):[];const f=w('tests').sort();if(!f.length){console.error('No tests/**/*.test.js files found');process.exit(1)}const r=require('child_process').spawnSync(process.execPath,['--test',...f],{stdio:'inherit'});process.exit(r.status===null?1:r.status)\"",
+    "setup-sheet": "node scripts/setup-sheet.js",
+    "check": "node -e \"const fs=require('fs'),p=require('path'),cp=require('child_process');const w=d=>fs.existsSync(d)?fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?(e.name==='node_modules'?[]:w(p.join(d,e.name))):e.name.endsWith('.js')?[p.join(d,e.name)]:[]):[];const f=['api','lib','scripts','tests','public/js','public/config'].flatMap(w);let bad=0;for(const x of f){const r=cp.spawnSync(process.execPath,['--check',x],{encoding:'utf8'});if(r.status!==0){bad++;process.stderr.write(r.stderr||r.stdout||(x+': failed\\n'))}}console.log(bad?bad+' of '+f.length+' files failed the syntax check':'Syntax OK: '+f.length+' files');process.exit(bad?1:0)\""
+  },
+  "dependencies": {
+    "@googleapis/sheets": "^18.1.1"
+  }
+}
