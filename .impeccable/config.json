@@ -1,0 +1,32 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-10-29T13:29:54.643Z",
+        "reason": "User design spec mandates font-family Arial, sans-serif (matches the team's current build)"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "lib/email.js"
+        ],
+        "createdAt": "2026-10-29T13:29:54.657Z",
+        "reason": "User design spec: hero card has radius 14px with a 6px red top border; receipts mirror it"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "public/js/receipt.js"
+        ],
+        "createdAt": "2026-10-29T13:29:54.668Z",
+        "reason": "User design spec: hero card has radius 14px with a 6px red top border; receipts mirror it"
+      }
+    ]
+  }
+}
