@@ -1,20 +1,18 @@
 /*
- * Client-side receipt: a standalone HTML file built from the order view (CONTRACT 5.6 / 7).
- * Every dynamic value goes through escapeHtml. Colours are read from the live design tokens (validated)
- * so a re-theme in tokens.css also re-themes the receipt.
+ * Client-side receipt: an A4 PDF built from the order view (CONTRACT 5.6 / 7) with public/js/pdf.js.
+ * Colours come from the live design tokens when they are plain #rrggbb values, so a re-theme in
+ * tokens.css also re-themes the receipt.
  */
 (function () {
   'use strict';
 
   var M = (window.Merch = window.Merch || {});
   var U = M.util;
-  var esc = U.escapeHtml;
   var lastUrl = null;
 
   var DEFAULTS = {
-    red: '#e62b1e', ink: '#171717', muted: '#666666', line: '#e5e5e5', 'page-bg': '#f5f5f5',
-    'hero-bg': '#111111', 'hero-muted': '#dddddd', 'success-bg': '#eaf7ed', 'success-border': '#b6dfbe',
-    'error-bg': '#fff0ef', 'error-border': '#ffc4bf', 'note-bg': '#f4f4f4'
+    red: '#e62b1e', ink: '#171717', muted: '#666666', line: '#e5e5e5', 'hero-bg': '#111111', 'hero-muted': '#dddddd',
+    'success-bg': '#eaf7ed', 'success-border': '#b6dfbe', 'error-bg': '#fff0ef', 'note-bg': '#f4f4f4'
   };
 
   function tokens() {
@@ -23,93 +21,156 @@
     try { cs = getComputedStyle(document.documentElement); } catch (e) { cs = null; }
     Object.keys(DEFAULTS).forEach(function (k) {
       var v = cs ? cs.getPropertyValue('--' + k).trim() : '';
-      // Only plain colour literals may reach the generated stylesheet.
-      out[k] = /^(#[0-9a-f]{3,8}|rgba?\([0-9.,\s%]+\))$/i.test(v) ? v : DEFAULTS[k];
+      out[k] = /^#[0-9a-f]{6}$/i.test(v) ? v : DEFAULTS[k];
     });
     return out;
   }
 
-  function money(n) {
-    return esc(U.formatINR(n));
-  }
+  var MARGIN = 40;
 
-  function row(label, value) {
-    if (value == null || value === '') return '';
-    return '<tr><th scope="row">' + esc(label) + '</th><td>' + esc(value) + '</td></tr>';
-  }
-
-  function buildHtml(view) {
+  /** Builds the receipt and returns the PDF as a string. */
+  function buildPdf(view) {
     var b = U.brand();
     var t = tokens();
+    var doc = M.pdf.create({ title: 'Order receipt ' + (view.orderId || '') });
+    var W = doc.width;
+    var right = W - MARGIN;
+    var bottomLimit = doc.height - 70;
+    var top = 0;
+
+    function newPage() {
+      doc.page();
+      top = MARGIN;
+    }
+    function ensure(space) {
+      if (top + space > bottomLimit) newPage();
+    }
+
+    // Header band
+    doc.page();
+    doc.rect(0, 0, W, 112, t['hero-bg']);
+    doc.rect(0, 0, W, 6, t.red);
+    doc.text(b.mark || 'TEDx', MARGIN, 44, { size: 24, bold: true, color: t.red });
+    doc.text('Order receipt', MARGIN, 72, { size: 18, bold: true, color: '#ffffff' });
+    doc.text(b.organisation || b.pageTitle || '', MARGIN, 94, { size: 11, color: t['hero-muted'] });
+    top = 140;
+
+    // Status pill + message
     var status = String(view.status || '');
-    var statusClass = status === 'Paid' ? 'ok' : (status === 'Awaiting Payment' ? 'wait' : 'bad');
+    var pillBg = status === 'Paid' ? t['success-bg'] : status === 'Awaiting Payment' ? t['note-bg'] : t['error-bg'];
+    var pillW = doc.textWidth(status, 11, true) + 24;
+    doc.rect(MARGIN, top - 14, pillW, 22, pillBg);
+    doc.text(status, MARGIN + 12, top + 1, { size: 11, bold: true, color: t.ink });
+    top += 26;
+    if (view.message) {
+      doc.wrap(view.message, right - MARGIN, 10).forEach(function (line) {
+        doc.text(line, MARGIN, top, { size: 10, color: t.ink });
+        top += 14;
+      });
+    }
+    top += 8;
+
+    // Order details
     var c = view.customer || {};
-    var items = Array.isArray(view.items) ? view.items : [];
+    var details = [
+      ['Order ID', view.orderId],
+      ['Order placed', U.formatDateTime(view.createdAt)],
+      ['Paid at', U.formatDateTime(view.paidAt)],
+      ['Name', c.name], ['Roll number', c.roll], ['Email', c.email], ['Contact number', c.phone],
+      ['Payment method', view.paymentMethod], ['Payment reference', view.paymentId]
+    ].filter(function (r) { return r[1] != null && r[1] !== ''; });
+    var valueX = MARGIN + 150;
+    details.forEach(function (r) {
+      var lines = doc.wrap(r[1], right - valueX, 10);
+      ensure(lines.length * 14 + 8);
+      doc.text(r[0], MARGIN, top, { size: 10, bold: true, color: t.muted });
+      lines.forEach(function (line, i) { doc.text(line, valueX, top + i * 14, { size: 10, color: t.ink }); });
+      top += lines.length * 14 + 4;
+      doc.line(MARGIN, top - 2, right, top - 2, t.line, 0.5);
+      top += 10;
+    });
 
-    var itemRows = items.map(function (it) {
-      var details = [];
-      if (it.size) details.push('Size: ' + it.size);
-      if (it.printing && it.printedName) details.push('Name printing: “' + it.printedName + '”');
-      var charge = Number(it.printingCharge) > 0 && it.printing ? ' + ' + U.formatINR(it.printingCharge) + ' printing' : '';
-      return '<tr><td><strong>' + esc(it.name) + '</strong><div class="sub">SKU: ' + esc(it.sku) +
-        (details.length ? ' · ' + esc(details.join(' · ')) : '') + '</div></td>' +
-        '<td class="num">' + esc(it.quantity) + '</td>' +
-        '<td class="num">' + money(it.unitPrice) + esc(charge) + '</td>' +
-        '<td class="num">' + money(it.lineTotal) + '</td></tr>';
-    }).join('');
+    // Items
+    top += 8;
+    ensure(60);
+    doc.text('Items', MARGIN, top, { size: 13, bold: true, color: t.ink });
+    top += 20;
+    var colQty = right - 190;
+    var colUnit = right - 90;
+    var itemWidth = colQty - 40 - MARGIN;
+    function itemHeader() {
+      doc.text('ITEM', MARGIN, top, { size: 8, bold: true, color: t.muted });
+      doc.text('QTY', colQty, top, { size: 8, bold: true, color: t.muted, align: 'right' });
+      doc.text('UNIT PRICE', colUnit, top, { size: 8, bold: true, color: t.muted, align: 'right' });
+      doc.text('AMOUNT', right, top, { size: 8, bold: true, color: t.muted, align: 'right' });
+      top += 6;
+      doc.line(MARGIN, top, right, top, t.line, 0.75);
+      top += 16;
+    }
+    itemHeader();
+    (Array.isArray(view.items) ? view.items : []).forEach(function (it) {
+      var sub = ['SKU: ' + it.sku];
+      if (it.size) sub.push('Size: ' + it.size);
+      if (it.printing && it.printedName) sub.push('Name printing: “' + it.printedName + '”');
+      var nameLines = doc.wrap(it.name, itemWidth, 10, true);
+      var subLines = doc.wrap(sub.join(' · '), itemWidth, 8);
+      var h = nameLines.length * 13 + subLines.length * 11 + 10;
+      if (top + h > bottomLimit) { newPage(); itemHeader(); }
+      var unit = U.formatINR(it.unitPrice) + (Number(it.printingCharge) > 0 && it.printing ? ' + ' + U.formatINR(it.printingCharge) : '');
+      doc.text(String(it.quantity), colQty, top, { size: 10, color: t.ink, align: 'right' });
+      doc.text(unit, colUnit, top, { size: 10, color: t.ink, align: 'right' });
+      doc.text(U.formatINR(it.lineTotal), right, top, { size: 10, color: t.ink, align: 'right' });
+      nameLines.forEach(function (line) { doc.text(line, MARGIN, top, { size: 10, bold: true, color: t.ink }); top += 13; });
+      subLines.forEach(function (line) { doc.text(line, MARGIN, top - 2, { size: 8, color: t.muted }); top += 11; });
+      doc.line(MARGIN, top, right, top, t.line, 0.5);
+      top += 16;
+    });
 
-    var css =
-      '*{box-sizing:border-box}body{margin:0;padding:24px 14px;background:' + t['page-bg'] + ';color:' + t.ink +
-      ';font-family:Arial,sans-serif;line-height:1.45}.sheet{max-width:760px;margin:0 auto;background:#fff;border:1px solid ' +
-      t.line + ';border-radius:12px;overflow:hidden}header{background:' + t['hero-bg'] + ';color:#fff;padding:22px 24px;border-top:6px solid ' +
-      t.red + '}.mark{color:' + t.red + ';font-weight:900;font-size:26px;letter-spacing:-1px}h1{margin:6px 0 4px;font-size:22px}' +
-      'header p{margin:0;color:' + t['hero-muted'] + '}main{padding:20px 24px}h2{font-size:16px;margin:22px 0 10px}' +
-      'table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid ' + t.line +
-      ';vertical-align:top}.meta th{width:38%;color:' + t.muted + ';font-weight:700}.items th{font-size:12px;color:' + t.muted +
-      ';text-transform:uppercase;letter-spacing:.4px}.num{text-align:right;white-space:nowrap}.sub{color:' + t.muted +
-      ';font-size:12px;margin-top:3px}.totals td{border:0;padding:4px 6px}.totals .grand td{font-size:18px;font-weight:800;border-top:2px solid ' +
-      t.line + ';padding-top:10px}.status{display:inline-block;padding:5px 12px;border-radius:999px;font-weight:800;font-size:13px;border:1px solid}' +
-      '.ok{background:' + t['success-bg'] + ';border-color:' + t['success-border'] + '}.bad{background:' + t['error-bg'] + ';border-color:' +
-      t['error-border'] + '}.wait{background:' + t['note-bg'] + ';border-color:' + t.line + '}footer{padding:16px 24px 22px;color:' + t.muted +
-      ';font-size:12px;border-top:1px solid ' + t.line + '}@media print{body{background:#fff;padding:0}.sheet{border:0}}';
+    // Totals
+    ensure(70);
+    function totalRow(label, value, big) {
+      doc.text(label, colUnit - 60, top, { size: big ? 13 : 10, bold: !!big, color: t.ink });
+      doc.text(value, right, top, { size: big ? 13 : 10, bold: !!big, color: t.ink, align: 'right' });
+      top += big ? 22 : 16;
+    }
+    totalRow('Subtotal', U.formatINR(view.subtotal));
+    if (Number(view.printingTotal) > 0) totalRow('Name printing', U.formatINR(view.printingTotal));
+    doc.line(colUnit - 60, top - 8, right, top - 8, t.line, 1.5);
+    top += 6;
+    totalRow('Total (' + (view.currency || 'INR') + ')', U.formatINR(view.total), true);
 
-    return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
-      '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-      '<title>Order receipt ' + esc(view.orderId) + ' – ' + esc(b.pageTitle || '') + '</title>' +
-      '<style>' + css + '</style></head><body><div class="sheet">' +
-      '<header><div class="mark">' + esc(b.mark || '') + '</div><h1>Order receipt</h1><p>' + esc(b.organisation || b.pageTitle || '') + '</p></header>' +
-      '<main><p><span class="status ' + statusClass + '">' + esc(status) + '</span></p>' +
-      (view.message ? '<p>' + esc(view.message) + '</p>' : '') +
-      '<table class="meta"><tbody>' +
-      row('Order ID', view.orderId) +
-      row('Order placed', U.formatDateTime(view.createdAt)) +
-      row('Paid at', U.formatDateTime(view.paidAt)) +
-      row('Name', c.name) + row('Roll number', c.roll) + row('Email', c.email) + row('Contact number', c.phone) +
-      row('Payment method', view.paymentMethod) + row('Payment reference', view.paymentId) +
-      '</tbody></table>' +
-      '<h2>Items</h2><table class="items"><thead><tr><th scope="col">Item</th><th scope="col" class="num">Qty</th>' +
-      '<th scope="col" class="num">Unit price</th><th scope="col" class="num">Amount</th></tr></thead><tbody>' + itemRows + '</tbody></table>' +
-      '<table class="totals"><tbody>' +
-      '<tr><td>Subtotal</td><td class="num">' + money(view.subtotal) + '</td></tr>' +
-      (Number(view.printingTotal) > 0 ? '<tr><td>Name printing</td><td class="num">' + money(view.printingTotal) + '</td></tr>' : '') +
-      '<tr class="grand"><td>Total (' + esc(view.currency || 'INR') + ')</td><td class="num">' + money(view.total) + '</td></tr>' +
-      '</tbody></table>' +
-      (view.notes ? '<h2>Notes</h2><p>' + esc(view.notes) + '</p>' : '') +
-      '</main><footer>Generated ' + esc(U.formatDateTime(new Date().toISOString())) + '. Keep this receipt for your records.' +
-      (b.supportEmail ? ' Questions? Contact ' + esc(b.supportEmail) + '.' : '') + '</footer></div></body></html>';
+    // Notes
+    if (view.notes) {
+      top += 6;
+      var noteLines = doc.wrap(view.notes, right - MARGIN, 10);
+      ensure(24 + noteLines.length * 14);
+      doc.text('Notes', MARGIN, top, { size: 12, bold: true, color: t.ink });
+      top += 18;
+      noteLines.forEach(function (line) { doc.text(line, MARGIN, top, { size: 10, color: t.ink }); top += 14; });
+    }
+
+    // Footer (last page)
+    var foot = 'Generated ' + U.formatDateTime(new Date().toISOString()) + '. Keep this receipt for your records.' +
+      (b.supportEmail ? ' Questions? Contact ' + b.supportEmail + '.' : '');
+    var footLines = doc.wrap(foot, right - MARGIN, 8);
+    var footTop = doc.height - 40 - (footLines.length - 1) * 11;
+    doc.line(MARGIN, footTop - 14, right, footTop - 14, t.line, 0.5);
+    footLines.forEach(function (line, i) { doc.text(line, MARGIN, footTop + i * 11, { size: 8, color: t.muted }); });
+
+    return doc.output();
   }
 
   function fileName(orderId) {
     var prefix = String(U.brand().receiptFilePrefix || 'Order_Receipt').replace(/[^A-Za-z0-9_-]/g, '_');
-    return prefix + '_' + String(orderId).replace(/[^A-Za-z0-9_-]/g, '_') + '.html';
+    return prefix + '_' + String(orderId).replace(/[^A-Za-z0-9_-]/g, '_') + '.pdf';
   }
 
-  /** Returns an <a class="receipt-button"> that downloads the receipt. */
+  /** Returns an <a class="receipt-button"> that downloads the receipt as a PDF. */
   function createLink(view) {
     if (lastUrl) { try { URL.revokeObjectURL(lastUrl); } catch (e) { /* ignore */ } }
-    lastUrl = URL.createObjectURL(new Blob([buildHtml(view)], { type: 'text/html;charset=utf-8' }));
-    return U.el('a', { class: 'receipt-button', href: lastUrl, download: fileName(view.orderId), text: 'Download order receipt' });
+    lastUrl = URL.createObjectURL(new Blob([buildPdf(view)], { type: 'application/pdf' }));
+    return U.el('a', { class: 'receipt-button', href: lastUrl, download: fileName(view.orderId), text: 'Download receipt (PDF)' });
   }
 
-  M.receipt = { buildHtml: buildHtml, createLink: createLink, fileName: fileName };
+  M.receipt = { buildPdf: buildPdf, createLink: createLink, fileName: fileName };
 })();
