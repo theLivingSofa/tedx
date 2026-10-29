@@ -6,7 +6,7 @@
  */
 
 const { HttpError, sendJson, readRawBody, allowMethods, log, withErrorHandling } = require('../lib/http');
-const { paymentMode, verifyWebhookSignature } = require('../lib/cashfree');
+const { paymentMode, verifyWebhookSignature, webhookTimestampMs } = require('../lib/cashfree');
 const { validateOrderId } = require('../lib/validate');
 const sheets = require('../lib/sheets');
 const { syncOrder, notFound } = require('../lib/orders');
@@ -49,7 +49,7 @@ module.exports = withErrorHandling(async (req, res) => {
     });
     log('warn', 'webhook_invalid_signature', {
       reason: sigOnly ? 'stale_timestamp' : 'bad_signature',
-      skewSeconds: /^\d{1,16}$/.test(ts) ? Math.round((Date.now() - Number(ts)) / 1000) : null
+      skewSeconds: /^\d{1,16}$/.test(ts) ? Math.round((Date.now() - webhookTimestampMs(ts)) / 1000) : null
     });
     throw new HttpError(401, 'invalid_signature', 'Invalid webhook signature.');
   }

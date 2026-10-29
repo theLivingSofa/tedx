@@ -277,8 +277,10 @@ Get Order) and returns the **order view** (5.6) with 200. Idempotent. Wrong/miss
 ### 5.4 `POST /api/cashfree-webhook`
 Reads the **raw** body. Verification (from official SDK `PGVerifyWebhookSignature` and Cashfree webhook docs):
 `expected = base64( HMAC_SHA256( key = CASHFREE_SECRET_KEY, message = x-webhook-timestamp + rawBody ) )`,
-compared with header `x-webhook-signature` using constant-time comparison. `x-webhook-timestamp` is in
-**milliseconds**; reject if `|now − ts| > WEBHOOK_TOLERANCE_SECONDS`.
+compared with header `x-webhook-signature` using constant-time comparison. `x-webhook-timestamp` is epoch
+**seconds** (10 digits; observed from webhook version 2026-01-01 on 2026-10-29) or epoch **milliseconds**
+(13 digits; Cashfree's docs example); the HMAC covers the string exactly as sent. Reject if
+`|now − ts| > WEBHOOK_TOLERANCE_SECONDS`.
 - Missing headers / bad signature / stale timestamp → `401 invalid_signature`.
 - Non-JSON body after valid signature → `400 invalid_json`.
 - Order id is read from `data.order.order_id`. Unknown order → 200 `{ "received": true }` (ignored).

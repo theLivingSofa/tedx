@@ -125,9 +125,25 @@ describe('verifyWebhookSignature', () => {
     assert.equal(check({ timestamp: ts, signature: sig, toleranceSeconds: 120 }), true);
   });
 
-  it('treats the timestamp as milliseconds (a seconds value is ~1970 and therefore stale)', () => {
+  it('accepts a 10-digit epoch-seconds timestamp (what Cashfree webhook version 2026-01-01 sends)', () => {
+    const seconds = String(Math.floor(NOW / 1000) - 2);
+    assert.equal(check({ timestamp: seconds, signature: signWebhook(RAW, seconds, SECRET) }), true);
+  });
+
+  it('applies the tolerance to seconds timestamps too (past and future)', () => {
+    for (const offset of [-301, 301]) {
+      const seconds = String(Math.floor(NOW / 1000) + offset);
+      assert.equal(check({ timestamp: seconds, signature: signWebhook(RAW, seconds, SECRET) }), false, `offset ${offset}s`);
+    }
+  });
+
+  it('still accepts 13-digit epoch-milliseconds timestamps', () => {
+    assert.equal(check(), true);
+  });
+
+  it('signs over the timestamp exactly as sent: a seconds signature does not validate as milliseconds', () => {
     const seconds = String(Math.floor(NOW / 1000));
-    assert.equal(check({ timestamp: seconds, signature: signWebhook(RAW, seconds, SECRET) }), false);
+    assert.equal(check({ timestamp: seconds + '000', signature: signWebhook(RAW, seconds, SECRET) }), false);
   });
 
   it('defaults `now` to Date.now()', () => {
