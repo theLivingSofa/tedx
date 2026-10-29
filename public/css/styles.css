@@ -361,9 +361,30 @@ body.mock-page { padding: 18px; background: var(--surface); }
 .admin-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-bottom: 8px; }
 .tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-family: Arial, sans-serif; background: var(--note-bg); border: 1px solid var(--line); }
 .tag.is-alert { color: var(--red); border-color: var(--red); }
+.admin-nav { display: flex; gap: 6px; padding: 8px; }
+.admin-nav a { padding: 8px 14px; border-radius: var(--radius-btn); color: var(--ink); text-decoration: none; font-weight: 700; }
+.admin-nav a:hover { background: var(--note-bg); }
+.admin-nav a[aria-current="page"] { background: var(--ink); color: #fff; }
+.product-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.product-form .span-2 { grid-column: span 2; }
+.product-form .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.products-table td { vertical-align: middle; }
+.products-table input, .products-table select { padding: 6px 8px; font-size: var(--fs-label); min-width: 120px; }
+.products-table input.narrow { min-width: 0; width: 90px; }
+.products-table input.wide { min-width: 220px; }
+.products-table .cell-check { display: flex; justify-content: center; margin: 0; }
+.products-table .cell-check input { min-width: 0; width: 18px; height: 18px; }
+.products-table .actions { white-space: nowrap; }
+.products-table tr.is-hidden-product td { background: var(--note-bg); }
+.thumb { display: block; width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--image-bg); }
+.thumb.empty { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.btn-small { padding: 6px 10px; font-size: var(--fs-label); margin-right: 6px; }
+.btn-danger { background: var(--surface); color: var(--red); border: 1px solid var(--red); }
 @media (max-width: 640px) {
   .admin-filters { grid-template-columns: 1fr; }
   .admin-actions { margin-left: 0; }
+  .product-form { grid-template-columns: 1fr; }
+  .product-form .span-2 { grid-column: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

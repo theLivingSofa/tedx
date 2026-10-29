@@ -493,6 +493,12 @@ money collected, items sold, handover progress, quantities per product and size 
 print, and a searchable orders list with a **Handed over** tick box and CSV export. It refreshes every minute.
 Sessions last 12 hours; sign-in is limited to 5 tries per 15 minutes per IP.
 
+**Products: `/admin-products`** (same sign-in). Change prices, names, categories, stock, images and the sizes /
+name-printing options; untick **In store** to hide an item, or add and delete products. It writes to the Catalogue
+tab, so the store updates within about a minute. The SKU of an existing product cannot be changed (orders refer to
+it); add a new product instead. Images must be Google Drive links shared as "Anyone with the link" (share links are
+converted automatically) or `/images/…` paths. Editing needs Google Sheets; in local demo mode it is read-only.
+
 **In the Sheet:** `npm run setup-dashboard` adds three formula tabs next to Orders (safe to run again):
 
 - **Dashboard**: the same numbers and the per-product size table.

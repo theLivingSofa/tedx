@@ -239,6 +239,9 @@
       await call('POST', '/api/admin-login', { password: input.value });
       input.value = '';
       setMessage($('loginMessage'), '', '');
+      // Only same-site admin pages are allowed as a return target.
+      var next = new URLSearchParams(location.search).get('next');
+      if (next === '/admin-products') { location.assign(next); return; }
       await load();
     } catch (err) {
       setMessage($('loginMessage'), 'error', err.status === 401 ? 'Wrong password.' : err.message);

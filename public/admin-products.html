@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Products – Organiser dashboard – TEDxIIMRohtak</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/config/brand.js" defer></script>
+  <script src="/js/util.js" defer></script>
+  <script src="/js/admin-products.js" defer></script>
+</head>
+<body class="page-admin">
+<div class="wrap">
+  <header class="hero">
+    <div class="tedx">TEDx</div>
+    <h1>Products</h1>
+    <p>Change prices, hide or show items, set stock, and add or delete products. The store updates within about a minute.</p>
+  </header>
+
+  <nav class="admin-nav card" aria-label="Admin sections">
+    <a href="/admin">Orders &amp; dashboard</a>
+    <a href="/admin-products" aria-current="page">Products</a>
+  </nav>
+
+  <main id="productsRoot">
+    <section class="card" id="loadingCard">
+      <div class="catalogue-status" role="status"><span class="spinner" aria-hidden="true"></span> Loading…</div>
+    </section>
+
+    <section class="card" id="signedOutCard" hidden>
+      <h2>Please sign in</h2>
+      <p>Sign in on the <a href="/admin?next=/admin-products">organiser dashboard</a> first, then come back here.</p>
+    </section>
+
+    <div id="editor" hidden>
+      <div id="pageMessage" class="message" role="status" aria-live="polite" tabindex="-1"></div>
+
+      <section class="card" aria-labelledby="addTitle">
+        <h2 id="addTitle">Add a product</h2>
+        <form id="addForm" class="product-form" novalidate>
+          <div><label for="new-sku">SKU</label><input id="new-sku" name="sku" placeholder="e.g. HOD-004" autocomplete="off" required><div class="field-error" hidden></div></div>
+          <div><label for="new-name">Name</label><input id="new-name" name="name" maxlength="80" required><div class="field-error" hidden></div></div>
+          <div><label for="new-category">Category</label><select id="new-category" name="category"></select><div class="field-error" hidden></div></div>
+          <div><label for="new-price">Price (₹)</label><input id="new-price" name="price" type="number" min="1" step="0.01" inputmode="decimal" required><div class="field-error" hidden></div></div>
+          <div><label for="new-stock">Stock</label><input id="new-stock" name="stock" type="number" min="0" step="1" placeholder="Blank = unlimited"><div class="field-error" hidden></div></div>
+          <div class="span-2"><label for="new-imageUrl">Image link</label><input id="new-imageUrl" name="imageUrl" placeholder="Google Drive share link or /images/…" autocomplete="off"><div class="field-error" hidden></div></div>
+          <div class="checks span-2">
+            <label class="admin-check"><input type="checkbox" name="apparel"> Has sizes (apparel)</label>
+            <label class="admin-check"><input type="checkbox" name="printing"> Name printing available</label>
+            <label class="admin-check"><input type="checkbox" name="active" checked> Show in store</label>
+          </div>
+          <div class="span-2"><button type="submit" id="addBtn">Add product</button></div>
+        </form>
+        <p class="small">Google Drive images must be shared as “Anyone with the link”. Paste the normal share link; it is converted automatically.</p>
+      </section>
+
+      <section class="card" aria-labelledby="listTitle">
+        <h2 id="listTitle">All products</h2>
+        <div class="admin-filters">
+          <div><label for="search">Search</label><input id="search" type="search" placeholder="Name or SKU" autocomplete="off"></div>
+          <div><label for="showFilter">Show</label>
+            <select id="showFilter"><option value="all">All products</option><option value="active">In store</option><option value="hidden">Hidden</option></select>
+          </div>
+        </div>
+        <div id="invalidRows" class="message error" hidden></div>
+        <div class="table-scroll"><table class="admin-table products-table" id="productsTable"></table></div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <nav aria-label="Store"><a href="/">Back to the store</a></nav>
+  </footer>
+</div>
+</body>
+</html>
