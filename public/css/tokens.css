@@ -1,0 +1,78 @@
+/*
+ * Design tokens — Merch Store (TEDxIIMRohtak).
+ * Re-theme the whole site by editing the values below. Owner: orchestrator (see docs/CONTRACT.md).
+ * Values reproduce the current Apps Script build exactly.
+ */
+:root {
+  /* Colour */
+  --red: #e62b1e;            /* brand accent: buttons, brand mark, hero top border, active nav */
+  --ink: #171717;            /* body text, receipt button */
+  --muted: #666;             /* hints, SKU lines, labels in summary bar */
+  --line: #e5e5e5;           /* card borders, dividers */
+  --page-bg: #f5f5f5;        /* page background */
+  --surface: #ffffff;        /* cards, popup, summary bar */
+  --hero-bg: #111111;        /* hero card and side-nav rail */
+  --hero-text: #ffffff;
+  --hero-muted: #dddddd;     /* hero intro paragraph */
+  --nav-btn-bg: #292929;
+  --nav-btn-border: #444444;
+  --image-bg: #f7f7f7;       /* product image box */
+  --shimmer-mid: #eeeeee;    /* image skeleton highlight */
+  --input-border: #cccccc;
+  --summary-border: #dddddd;
+  --close-bg: #222222;       /* cart popup close button */
+  --overlay: rgba(0, 0, 0, .53);
+  --success-bg: #eaf7ed;
+  --success-border: #b6dfbe;
+  --error-bg: #fff0ef;
+  --error-border: #ffc4bf;
+  --note-bg: #f4f4f4;        /* disclaimer / sandbox note panel */
+  --note-text: #333333;
+  --focus-ring: #1a73e8;     /* keyboard focus outline (accessibility addition) */
+
+  /* Typography */
+  --font: Arial, sans-serif;
+  --fs-body: 14px;
+  --fs-label: 13px;
+  --fs-hint: 12px;
+  --fs-sku: 11px;
+  --fs-h1: 25px;
+  --fs-h2: 18px;
+  --fs-section: 21px;
+  --fs-brand: 28px;
+  --fs-nav-brand: 15px;
+  --fs-nav-btn: 10px;
+  --fs-button: 15px;
+  --fs-total: 24px;
+
+  /* Layout */
+  --wrap-max: 1240px;
+  --summary-max: 900px;
+  --nav-width: 64px;
+  --nav-width-mobile: 52px;
+  --body-pad-left: 76px;
+  --body-pad-left-mobile: 58px;
+  --wrap-pad: 22px 14px 100px;
+  --wrap-pad-top-mobile: 64px;
+  --grid-gap: 16px;
+
+  /* Shape */
+  --radius-hero: 14px;
+  --radius-card: 12px;
+  --radius-product: 10px;
+  --radius-btn: 8px;
+  --radius-input: 7px;
+  --radius-popup: 16px;
+  --radius-pill: 999px;
+  --hero-top-border: 6px;
+
+  /* Elevation */
+  --shadow-nav: 2px 0 12px rgba(0, 0, 0, .07);
+  --shadow-cart: 0 4px 16px rgba(0, 0, 0, .2);
+  --shadow-summary: 0 -3px 12px rgba(0, 0, 0, .05);
+  --shadow-popup: 0 18px 60px rgba(0, 0, 0, .27);
+
+  /* Breakpoints (documentation only — CSS custom properties cannot be used in media queries):
+     mobile  <= 600px
+     tablet  601px – 900px */
+}
