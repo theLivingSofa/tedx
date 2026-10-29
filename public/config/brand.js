@@ -26,7 +26,7 @@
     // Receipt file name prefix: <prefix>_<orderId>.html
     receiptFilePrefix: 'TEDxIIMR_Order_Receipt',
     // Contact shown on receipts / help text.
-    supportEmail: 'merch@example.com',
+    supportEmail: 'tedx@iimrohtak.ac.in',
     // Catalogue sections, in display order. `id` must match the Catalogue `category` value.
     sections: [
       { id: 'Winter', label: 'Winter', navLabel: 'Winter', icon: '❄' },
