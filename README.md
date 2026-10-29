@@ -485,13 +485,18 @@ npm run check
 
 ## Organiser dashboard
 
-Two ways for organisers to see orders. Both count **Paid orders only** and hide test (sandbox / demo) payments
-unless you tick "Include test payments".
+Two ways for organisers to see orders. Both count **Paid orders only** and never include test (sandbox / demo)
+payments.
 
 **On the site: `/admin`** (not linked from the store). Sign in with `ADMIN_PASSWORD`. It shows paid orders,
 money collected, items sold, handover progress, quantities per product and size for the vendor, the names to
 print, and a searchable orders list with a **Handed over** tick box and CSV export. It refreshes every minute.
 Sessions last 12 hours; sign-in is limited to 5 tries per 15 minutes per IP.
+
+**Changing the admin password:** at the bottom of `/admin`, open "Change admin password". The new password is
+stored only as a salted scrypt hash in the Config tab (row `ADMIN_PASSWORD_HASH`) and signs every other device out.
+While that row exists it replaces `ADMIN_PASSWORD`. **Forgot it?** Delete the `ADMIN_PASSWORD_HASH` row in the
+Config tab; `ADMIN_PASSWORD` from Vercel works again within about 30 seconds.
 
 **Products: `/admin-products`** (same sign-in). Change prices, names, categories, stock, images and the sizes /
 name-printing options; untick **In store** to hide an item, or add and delete products. It writes to the Catalogue

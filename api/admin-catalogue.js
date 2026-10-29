@@ -24,7 +24,7 @@ module.exports = withErrorHandling(async (req, res) => {
   if (applyCors(req, res, { methods: ['GET', 'POST'] })) return;
   if (!allowMethods(req, res, ['GET', 'POST'])) return;
   if (!enforceRateLimit(req, res, 'admin-catalogue', { limit: 60, windowMs: 60000 })) return;
-  if (!admin.isAuthenticated(req)) throw new HttpError(401, 'unauthorized', 'Please sign in.');
+  if (!(await admin.isAuthenticated(req))) throw new HttpError(401, 'unauthorized', 'Please sign in.');
 
   if (req.method === 'GET') {
     const data = await sheets.listCatalogueForAdmin();

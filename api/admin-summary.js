@@ -1,10 +1,10 @@
 'use strict';
 /*
- * GET /api/admin-summary[?includeTest=1] -> dashboard data (metrics, per-product sizes, printed names, orders).
+ * GET /api/admin-summary -> dashboard data (metrics, per-product sizes, printed names, orders). Test payments are never included.
  * Needs the admin session cookie. Contains customer details: never cache, never log.
  */
 
-const { HttpError, sendJson, applyCors, allowMethods, getQuery, withErrorHandling } = require('../lib/http');
+const { HttpError, sendJson, applyCors, allowMethods, withErrorHandling } = require('../lib/http');
 const { enforceRateLimit } = require('../lib/ratelimit');
 const sheets = require('../lib/sheets');
 const admin = require('../lib/admin');
@@ -14,11 +14,7 @@ module.exports = withErrorHandling(async (req, res) => {
   if (applyCors(req, res, { methods: ['GET'] })) return;
   if (!allowMethods(req, res, ['GET'])) return;
   if (!enforceRateLimit(req, res, 'admin-summary', { limit: 60, windowMs: 60000 })) return;
-  if (!admin.isAuthenticated(req)) throw new HttpError(401, 'unauthorized', 'Please sign in.');
-
-  const q = getQuery(req) || {};
-  const raw = typeof q.get === 'function' ? q.get('includeTest') : q.includeTest;
-  const includeTest = raw === '1' || raw === 'true';
+  if (!(await admin.isAuthenticated(req))) throw new HttpError(401, 'unauthorized', 'Please sign in.');
 
   const [orders, catalogue, handover] = await Promise.all([
     sheets.listOrders({ limit: 100000 }),
@@ -29,7 +25,7 @@ module.exports = withErrorHandling(async (req, res) => {
     })
   ]);
 
-  const summary = admin.summarise({ orders, catalogue, handover: handover || new Map(), includeTest });
+  const summary = admin.summarise({ orders, catalogue, handover: handover || new Map() });
   summary.handoverAvailable = handover !== null;
   summary.storage = sheets.storageMode();
   summary.generatedAt = new Date().toISOString();

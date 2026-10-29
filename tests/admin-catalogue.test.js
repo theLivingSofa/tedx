@@ -43,6 +43,7 @@ function fakeSheets(rows) {
       },
       values: {
         get: async ({ range }) => {
+          if (range.startsWith('Config!')) return { data: { values: [['key', 'value']] } }; // no admin password hash set
           const p = parse(range);
           if (p.all || p.r0 === null) return { data: { values: tab.map((r) => r.slice()) } };
           const out = [];

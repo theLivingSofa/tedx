@@ -2,6 +2,7 @@
 /*
  * POST /api/admin-login { password } -> 200 { ok: true } + session cookie.
  * 404 when ADMIN_PASSWORD is not configured, 401 on a wrong password, 429 after 5 tries per 15 min per IP.
+ * The password is the one set on /admin (stored as a hash in the Sheet) or, if none was set, ADMIN_PASSWORD.
  */
 
 const { HttpError, sendJson, readJsonBody, applyCors, allowMethods, log, withErrorHandling } = require('../lib/http');
@@ -16,10 +17,11 @@ module.exports = withErrorHandling(async (req, res) => {
 
   const body = await readJsonBody(req, { limit: 2048 });
   const password = body && typeof body.password === 'string' ? body.password : '';
-  if (!admin.checkPassword(password)) {
+  const session = await admin.login(password);
+  if (!session) {
     log('warn', 'admin_login_failed', {});
     throw new HttpError(401, 'invalid_password', 'Wrong password.');
   }
   log('info', 'admin_login', {});
-  sendJson(res, 200, { ok: true }, { 'Set-Cookie': admin.sessionCookie(admin.createSession()) });
+  sendJson(res, 200, { ok: true }, { 'Set-Cookie': admin.sessionCookie(session) });
 });

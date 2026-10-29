@@ -13,7 +13,7 @@ module.exports = withErrorHandling(async (req, res) => {
   if (applyCors(req, res, { methods: ['POST'] })) return;
   if (!allowMethods(req, res, ['POST'])) return;
   if (!enforceRateLimit(req, res, 'admin-handover', { limit: 120, windowMs: 60000 })) return;
-  if (!admin.isAuthenticated(req)) throw new HttpError(401, 'unauthorized', 'Please sign in.');
+  if (!(await admin.isAuthenticated(req))) throw new HttpError(401, 'unauthorized', 'Please sign in.');
 
   const body = await readJsonBody(req, { limit: 2048 });
   const orderId = body && typeof body.orderId === 'string' ? body.orderId.trim() : '';

@@ -44,7 +44,6 @@
 
     <div id="dashboard" hidden>
       <section class="card admin-toolbar" aria-label="Dashboard controls">
-        <label class="admin-check"><input type="checkbox" id="includeTest"> Include test (sandbox) payments</label>
         <span class="small" id="updatedAt" aria-live="polite"></span>
         <span class="admin-actions">
           <button type="button" id="refreshBtn" class="btn-secondary">Refresh</button>
@@ -92,6 +91,34 @@
         </div>
         <p class="small" id="ordersCount" aria-live="polite"></p>
         <div class="table-scroll"><table class="admin-table" id="ordersTable"></table></div>
+      </section>
+
+      <section class="card" aria-labelledby="passwordTitle">
+        <details id="passwordDetails">
+          <summary><h2 id="passwordTitle" class="inline-h2">Change admin password</h2></summary>
+          <form id="passwordForm" class="password-form" novalidate>
+            <div>
+              <label for="currentPassword">Current password</label>
+              <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required>
+              <div class="field-error" hidden></div>
+            </div>
+            <div>
+              <label for="newPassword">New password</label>
+              <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+              <div class="hint">At least 12 characters. A short sentence works well.</div>
+              <div class="field-error" hidden></div>
+            </div>
+            <div>
+              <label for="confirmPassword">New password again</label>
+              <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required>
+              <div class="field-error" hidden></div>
+            </div>
+            <div><button type="submit" id="passwordBtn">Change password</button></div>
+          </form>
+          <p class="small">Everyone else signed in to the admin pages is signed out. Share the new password with the
+            organisers who need it, privately.</p>
+          <div id="passwordMessage" class="message" role="status" aria-live="polite" tabindex="-1"></div>
+        </details>
       </section>
     </div>
   </main>

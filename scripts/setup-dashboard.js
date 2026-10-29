@@ -44,8 +44,8 @@ if (args.some((a) => a !== '--dry-run')) {
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size'];
 const col = (n) => String.fromCharCode(64 + n);
 
-const LINES = `=LET(inc,Dashboard!$C$4,ids,Orders!A2:A,st,Orders!D2:D,fl,Orders!Y2:Y,js,Orders!J2:J,
-keep,IFERROR(FILTER(SEQUENCE(ROWS(ids)),st="Paid",js<>"",(inc=TRUE)+NOT(REGEXMATCH(fl&"","TEST_PAYMENT"))),""),
+const LINES = `=LET(ids,Orders!A2:A,st,Orders!D2:D,fl,Orders!Y2:Y,js,Orders!J2:J,
+keep,IFERROR(FILTER(SEQUENCE(ROWS(ids)),st="Paid",js<>"",NOT(REGEXMATCH(fl&"","TEST_PAYMENT"))),""),
 res,REDUCE("",keep,LAMBDA(acc,i,IF(i="",acc,LET(ch,TOCOL(SPLIT(INDEX(js,i),"}",FALSE,TRUE),3),itm,FILTER(ch,REGEXMATCH(ch,"""sku""")),
 tx,LAMBDA(p,MAP(itm,LAMBDA(c,IFERROR(REGEXEXTRACT(c,p),"")))),
 nm,LAMBDA(p,MAP(itm,LAMBDA(c,IFERROR(VALUE(REGEXEXTRACT(c,p)),0)))),
@@ -56,7 +56,8 @@ nm("""quantity"":(\\d+)"),nm("""lineTotal"":([\\d.]+)"))))))),
 out,IFNA(res,""),IFERROR(FILTER(out,INDEX(out,,1)<>""),""))`.replace(/\n/g, '');
 
 const NOT_TEST = 'Orders!Y2:Y,"<>*TEST_PAYMENT*"';
-const metric = (label, real, all, fmt) => ({ label, f: `=IF($C$4,${all},${real})`, fmt });
+// Test (sandbox / demo) payments are never counted.
+const metric = (label, real, _all, fmt) => ({ label, f: `=${real}`, fmt });
 const METRICS = [
   metric('Paid orders', `COUNTIFS(Orders!D2:D,"Paid",${NOT_TEST})`, 'COUNTIF(Orders!D2:D,"Paid")'),
   metric('Money collected', `SUMIFS(Orders!M2:M,Orders!D2:D,"Paid",${NOT_TEST})`, 'SUMIFS(Orders!M2:M,Orders!D2:D,"Paid")', 'money'),
@@ -119,8 +120,7 @@ async function main() {
   data.push({ range: 'Handover!A1:K1', values: [['Order ID', 'Status', 'Name', 'Roll number', 'Phone', 'Items', 'Total (₹)', 'Paid at', 'Test payment?', 'Handed over ✓', 'Handed over on / by / notes']] });
   data.push({ range: 'Handover!A2:I2', values: [[hv('Orders!A2:A'), hv('Orders!D2:D'), hv('Orders!E2:E'), hv('Orders!F2:F'), hv('Orders!H2:H'), hv('Orders!I2:I'), hv('Orders!M2:M'), hv('Orders!V2:V'), hv('REGEXMATCH(Orders!Y2:Y&"","TEST_PAYMENT")')]] });
   // Dashboard
-  data.push({ range: 'Dashboard!A1:A2', values: [['TEDxIIMRohtak Merch – Dashboard'], ['Updates by itself from the Orders tab. Only tick the box below and the "Handed over" column in Handover; everything else is formulas.']] });
-  data.push({ range: 'Dashboard!A4', values: [['Include test (sandbox) payments?']] });
+  data.push({ range: 'Dashboard!A1:A2', values: [['TEDxIIMRohtak Merch – Dashboard'], ['Updates by itself from the Orders tab. Test (sandbox / demo) payments are never counted. Only the "Handed over" column in Handover is for ticking; everything else is formulas.']] });
   data.push({ range: 'Dashboard!A6:C' + (5 + METRICS.length), values: METRICS.map((x) => [x.label, '', x.f]) });
   data.push({ range: `Dashboard!A${T0 - 1}`, values: [['Quantities to order from the vendor (paid orders only)']] });
   data.push({ range: `Dashboard!A${T0}:${col(4 + SIZES.length + 1)}${T0}`, values: [['SKU', 'Product', ...SIZES, 'Total qty', 'With name printing', 'Revenue (₹)']] });
@@ -141,10 +141,9 @@ async function main() {
   const grey = { red: 0.95, green: 0.95, blue: 0.95 };
   const requests = [
     { repeatCell: { range: { sheetId: D, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true, fontSize: 16 } } }, fields: 'userEnteredFormat.textFormat' } },
-    bold(D, 3, 4, 0, 1), bold(D, T0 - 2, T0 - 1, 0, 1), bold(D, T0 - 1, T0, 0, lastCol, { backgroundColor: grey }),
+    bold(D, T0 - 2, T0 - 1, 0, 1), bold(D, T0 - 1, T0, 0, lastCol, { backgroundColor: grey }),
     bold(D, 5, 5 + METRICS.length, 2, 3),
     money(D, 6, 7, 2, 3), money(D, T0, 200, lastCol - 1, lastCol),
-    checkbox(D, 3, 4, 2, 3),
     bold(H, 0, 1, 0, 11, { backgroundColor: grey }), money(H, 1, 3000, 6, 7), checkbox(H, 1, 3000, 9, 10),
     bold(OL, 0, 1, 0, 8, { backgroundColor: grey }), money(OL, 1, 5000, 7, 8),
     { updateSheetProperties: { properties: { sheetId: H, gridProperties: { frozenRowCount: 1 } }, fields: 'gridProperties.frozenRowCount' } },
@@ -168,9 +167,9 @@ async function main() {
   };
   const fresh = requests.filter((r) => created.has(tabOf(r)));
   if (fresh.length) await s.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: fresh } });
-  if (created.has('Dashboard')) {
-    await s.spreadsheets.values.update({ spreadsheetId: id, range: 'Dashboard!C4', valueInputOption: 'USER_ENTERED', requestBody: { values: [['FALSE']] } });
-  }
+  // Older versions had an "Include test payments" checkbox in A4:C4; remove it (test payments are never counted now).
+  await s.spreadsheets.values.clear({ spreadsheetId: id, range: 'Dashboard!A4:C4' });
+  await s.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: [{ setDataValidation: { range: { sheetId: sid.Dashboard, startRowIndex: 3, endRowIndex: 4, startColumnIndex: 2, endColumnIndex: 3 } } }] } });
   console.log(created.size ? 'Created: ' + [...created].join(', ') + '.' : 'All three tabs already existed.', 'Formulas are up to date.');
 }
 

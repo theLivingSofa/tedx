@@ -31,7 +31,7 @@
     try { data = await res.json(); } catch (e) { data = null; }
     if (res.ok) return data;
     var err = (data && data.error) || {};
-    throw { status: res.status, code: err.code, message: err.message || 'Something went wrong. Please try again.' };
+    throw { status: res.status, code: err.code, message: err.message || 'Something went wrong. Please try again.', fields: err.fields || null };
   }
 
   /* ------------------------------------------------------------------ ui helpers */
@@ -174,8 +174,7 @@
     state.loading = true;
     $('refreshBtn').disabled = true;
     try {
-      var includeTest = $('includeTest').checked ? '1' : '0';
-      state.data = await call('GET', '/api/admin-summary?includeTest=' + includeTest);
+      state.data = await call('GET', '/api/admin-summary');
       show('dashboard');
       render();
       if (!(opts && opts.keepMessage)) setMessage($('dashMessage'), '', '');
@@ -196,7 +195,7 @@
       var saved = await call('POST', '/api/admin-handover', { orderId: o.orderId, handedOver: want });
       o.handedOver = saved.handedOver;
       var m = state.data.metrics;
-      var paid = state.data.orders.filter(function (x) { return x.status === 'Paid' && (!x.test || state.data.includeTest); });
+      var paid = state.data.orders.filter(function (x) { return x.status === 'Paid'; });
       m.handedOver = paid.filter(function (x) { return x.handedOver; }).length;
       m.toHandOver = m.paidOrders - m.handedOver;
       renderMetrics(m);
@@ -251,6 +250,38 @@
     }
   }
 
+  function passwordFieldError(name, text) {
+    var input = $(name);
+    var box = input.parentElement.querySelector('.field-error');
+    if (text) { input.setAttribute('aria-invalid', 'true'); box.textContent = text; box.hidden = false; }
+    else { input.removeAttribute('aria-invalid'); box.textContent = ''; box.hidden = true; }
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    var current = $('currentPassword').value;
+    var next = $('newPassword').value;
+    var again = $('confirmPassword').value;
+    ['currentPassword', 'newPassword', 'confirmPassword'].forEach(function (n) { passwordFieldError(n, ''); });
+    setMessage($('passwordMessage'), '', '');
+    if (!current) { passwordFieldError('currentPassword', 'Enter your current password.'); $('currentPassword').focus(); return; }
+    if (next.length < 12) { passwordFieldError('newPassword', 'Use at least 12 characters.'); $('newPassword').focus(); return; }
+    if (next !== again) { passwordFieldError('confirmPassword', 'The two new passwords do not match.'); $('confirmPassword').focus(); return; }
+    $('passwordBtn').disabled = true;
+    try {
+      await call('POST', '/api/admin-password', { currentPassword: current, newPassword: next });
+      $('passwordForm').reset();
+      setMessage($('passwordMessage'), 'success', 'Password changed. Use the new password next time you sign in.');
+    } catch (err) {
+      if (err.status === 401) { show('login'); return; }
+      var field = err.fields && Object.keys(err.fields)[0];
+      if (field === 'currentPassword' || field === 'newPassword') { passwordFieldError(field, err.message); $(field).focus(); }
+      else setMessage($('passwordMessage'), 'error', err.message);
+    } finally {
+      $('passwordBtn').disabled = false;
+    }
+  }
+
   async function logout() {
     try { await call('POST', '/api/admin-logout', {}); } catch (e) { /* ignore */ }
     state.data = null;
@@ -258,15 +289,11 @@
   }
 
   function init() {
-    try { $('includeTest').checked = localStorage.getItem('merch:admin:includeTest') === '1'; } catch (e) { /* ignore */ }
     $('loginForm').addEventListener('submit', login);
     $('refreshBtn').addEventListener('click', function () { load(); });
     $('csvBtn').addEventListener('click', downloadCsv);
     $('logoutBtn').addEventListener('click', logout);
-    $('includeTest').addEventListener('change', function () {
-      try { localStorage.setItem('merch:admin:includeTest', $('includeTest').checked ? '1' : '0'); } catch (e) { /* ignore */ }
-      load();
-    });
+    $('passwordForm').addEventListener('submit', changePassword);
     $('search').addEventListener('input', function () { if (state.data) renderOrders(); });
     $('statusFilter').addEventListener('change', function () { if (state.data) renderOrders(); });
     state.timer = setInterval(function () {
