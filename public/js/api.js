@@ -81,6 +81,11 @@
       return request('GET', '/api/order-status?id=' + encodeURIComponent(orderId), undefined,
         { headers: { 'X-Order-Token': token } });
     },
+    /** Re-confirms an unpaid order and, if it can still be paid, returns { …view, resume: { paymentSessionId, environment } }. */
+    resumePayment: function (orderId, token) {
+      return request('GET', '/api/order-status?resume=1&id=' + encodeURIComponent(orderId), undefined,
+        { headers: { 'X-Order-Token': token } });
+    },
     mockPay: function (orderId, token, outcome) {
       return request('POST', '/api/mock-pay', { orderId: orderId, token: token, outcome: outcome });
     }

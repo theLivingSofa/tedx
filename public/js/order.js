@@ -23,6 +23,7 @@
   var timer = null;
   var startedAt = 0;
   var lastStatus = null;
+  var paying = false; // true while the Cashfree window opened by "Complete payment" is in use
   var ui = {};
 
   function storeLink(text) {
@@ -71,6 +72,9 @@
     ui.receiptSlot = el('span', { class: 'receipt-slot' });
     ui.checkAgain = el('button', { type: 'button', class: 'retry-button', text: 'Check again', hidden: true });
     ui.checkAgain.addEventListener('click', function () { startPolling(); });
+    ui.payNow = el('button', { type: 'button', class: 'pay-now-button', text: 'Complete payment', hidden: true });
+    ui.payNow.addEventListener('click', completePayment);
+    ui.payNote = el('p', { class: 'hint', hidden: true });
     ui.meta = el('dl', { class: 'meta-list' });
     ui.itemsBody = el('tbody');
     ui.itemsFoot = el('tfoot');
@@ -84,7 +88,8 @@
       ui.message,
       ui.announce,
       ui.poll,
-      el('div', { class: 'order-actions' }, [ui.receiptSlot, ui.checkAgain, storeLink()])
+      el('div', { class: 'order-actions' }, [ui.payNow, ui.receiptSlot, ui.checkAgain, storeLink()]),
+      ui.payNote
     ]));
     root.appendChild(el('section', { class: 'card', attrs: { 'aria-labelledby': 'detailsTitle' } }, [
       el('h2', { id: 'detailsTitle', text: 'Order details' }),
@@ -124,6 +129,15 @@
     U.clear(ui.receiptSlot);
     if (status === 'Paid') ui.receiptSlot.appendChild(M.receipt.createLink(view));
 
+    // "Complete payment" only while the server says this unpaid order can still be paid.
+    var resumable = Boolean(view.canResume) && (status === 'Awaiting Payment' || status === 'Failed');
+    if (!paying) ui.payNow.hidden = !resumable;
+    ui.payNote.hidden = !resumable;
+    if (resumable) {
+      ui.payNote.textContent = 'Closed the payment window by mistake? Complete the payment for this same order before ' +
+        U.formatDateTime(view.expiresAt) + '. If money was already deducted, do not pay again: this page updates by itself.';
+    }
+
     var c = view.customer || {};
     U.clear(ui.meta);
     U.append(ui.meta, [
@@ -154,6 +168,42 @@
 
     ui.notes.hidden = !view.notes;
     ui.notes.textContent = view.notes ? 'Notes: ' + view.notes : '';
+  }
+
+  /* ---------- Complete payment: reopen Cashfree checkout for this same order ---------- */
+
+  async function completePayment() {
+    if (paying) return;
+    paying = true;
+    ui.payNow.disabled = true;
+    ui.payNow.textContent = 'Opening payment…';
+    stopPolling();
+    try {
+      var view = await M.api.resumePayment(orderId, token);
+      render(view);
+      if (!view.resume) {
+        if (view.status !== 'Paid' && view.status !== 'Expired') {
+          ui.message.textContent = 'This order can no longer be paid here. Please place a new order from the store.';
+        }
+        return;
+      }
+      if (typeof window.Cashfree !== 'function') {
+        ui.message.textContent = 'The payment window could not load. Turn off content blockers for this site, reload the page and try again.';
+        return;
+      }
+      var cf = window.Cashfree({ mode: view.resume.environment === 'production' ? 'production' : 'sandbox' });
+      var result = await cf.checkout({ paymentSessionId: view.resume.paymentSessionId, redirectTarget: '_modal' });
+      if (result && result.redirect) return; // in-app browsers: Cashfree brings the customer back to this page
+      ui.payNow.textContent = 'Confirming payment…';
+      try { render(await M.api.verifyPayment(orderId, token)); } catch (e) { /* polling below catches up */ }
+    } catch (err) {
+      ui.message.textContent = (err && err.message) || 'Could not open the payment window. Please try again.';
+    } finally {
+      paying = false;
+      ui.payNow.disabled = false;
+      ui.payNow.textContent = 'Complete payment';
+      startPolling();
+    }
   }
 
   function setPollNote(text, spinning) {

@@ -269,6 +269,7 @@ body.modal-open { overflow: hidden; }
 .items-table tfoot .grand td { font-size: var(--fs-h2); font-weight: 800; border-top: 2px solid var(--line); padding-top: 12px; }
 .order-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 16px; }
 .order-actions .receipt-button { margin-top: 0; }
+.pay-now-button { padding: 11px 20px; font-weight: 800; }
 .page-order .wrap { padding-bottom: 40px; }
 
 /* ---------- Demo checkout page (inside the iframe) ---------- */
