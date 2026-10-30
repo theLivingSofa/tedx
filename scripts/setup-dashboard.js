@@ -8,6 +8,9 @@
  *   Handover     one row per order (same row as in Orders) with a "Handed over" checkbox (J) and a note (K);
  *                the /admin page reads and writes the same two columns
  *   Order Lines  one row per item of every paid order (size, printed name, quantity) for the vendor
+ * Every reference to Orders / Catalogue goes through INDIRECT("…"): the site appends order rows with
+ * INSERT_ROWS, and plain references such as Orders!A2:A would be shifted by Google Sheets (to A3:A, A4:A, …),
+ * silently dropping orders from these tabs.
  * Safe to run again: formulas are rewritten, formatting and protections are only added to newly created tabs,
  * and ticks/notes in Handover!J:K are never touched. Reads .env.local / .env like setup-sheet.
  */
@@ -44,7 +47,7 @@ if (args.some((a) => a !== '--dry-run')) {
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One size'];
 const col = (n) => String.fromCharCode(64 + n);
 
-const LINES = `=LET(ids,Orders!A2:A,st,Orders!D2:D,fl,Orders!Y2:Y,js,Orders!J2:J,
+const LINES = `=LET(ids,INDIRECT("Orders!A2:A"),st,INDIRECT("Orders!D2:D"),fl,INDIRECT("Orders!Y2:Y"),js,INDIRECT("Orders!J2:J"),
 keep,IFERROR(FILTER(SEQUENCE(ROWS(ids)),st="Paid",js<>"",NOT(REGEXMATCH(fl&"","TEST_PAYMENT"))),""),
 res,REDUCE("",keep,LAMBDA(acc,i,IF(i="",acc,LET(ch,TOCOL(SPLIT(INDEX(js,i),"}",FALSE,TRUE),3),itm,FILTER(ch,REGEXMATCH(ch,"""sku""")),
 tx,LAMBDA(p,MAP(itm,LAMBDA(c,IFERROR(REGEXEXTRACT(c,p),"")))),
@@ -55,19 +58,21 @@ MAP(itm,LAMBDA(c,REGEXMATCH(c,"""printing"":true"))),tx("""printedName"":""([^""
 nm("""quantity"":(\\d+)"),nm("""lineTotal"":([\\d.]+)"))))))),
 out,IFNA(res,""),IFERROR(FILTER(out,INDEX(out,,1)<>""),""))`.replace(/\n/g, '');
 
-const NOT_TEST = 'Orders!Y2:Y,"<>*TEST_PAYMENT*"';
+const NOT_TEST = 'INDIRECT("Orders!Y2:Y"),"<>*TEST_PAYMENT*"';
 // Test (sandbox / demo) payments are never counted.
 const metric = (label, real, _all, fmt) => ({ label, f: `=${real}`, fmt });
 const METRICS = [
-  metric('Paid orders', `COUNTIFS(Orders!D2:D,"Paid",${NOT_TEST})`, 'COUNTIF(Orders!D2:D,"Paid")'),
-  metric('Money collected', `SUMIFS(Orders!M2:M,Orders!D2:D,"Paid",${NOT_TEST})`, 'SUMIFS(Orders!M2:M,Orders!D2:D,"Paid")', 'money'),
+  metric('Paid orders', `COUNTIFS(INDIRECT("Orders!D2:D"),"Paid",${NOT_TEST})`, 'COUNTIF(INDIRECT("Orders!D2:D"),"Paid")'),
+  metric('Money collected', `SUMIFS(INDIRECT("Orders!M2:M"),INDIRECT("Orders!D2:D"),"Paid",${NOT_TEST})`, 'SUMIFS(INDIRECT("Orders!M2:M"),INDIRECT("Orders!D2:D"),"Paid")', 'money'),
   { label: 'Items sold', f: '=IFERROR(SUM(\'Order Lines\'!G2:G),0)' },
   { label: 'Items with name printing', f: '=IFERROR(SUMIFS(\'Order Lines\'!G2:G,\'Order Lines\'!E2:E,TRUE),0)' },
   metric('Orders handed over', 'COUNTIFS(Handover!J2:J,TRUE,Handover!B2:B,"Paid",Handover!I2:I,FALSE)', 'COUNTIFS(Handover!J2:J,TRUE,Handover!B2:B,"Paid")'),
   { label: 'Still to hand over', f: '=C6-C10' },
-  metric('Awaiting payment', `COUNTIFS(Orders!D2:D,"Awaiting Payment",${NOT_TEST})`, 'COUNTIF(Orders!D2:D,"Awaiting Payment")'),
-  metric('Failed / expired', `COUNTIFS(Orders!D2:D,"Failed",${NOT_TEST})+COUNTIFS(Orders!D2:D,"Expired",${NOT_TEST})`, 'COUNTIF(Orders!D2:D,"Failed")+COUNTIF(Orders!D2:D,"Expired")'),
-  { label: 'Orders to check (Review Flag set)', f: '=COUNTIFS(Orders!A2:A,"<>",Orders!Y2:Y,"<>",Orders!Y2:Y,"<>TEST_PAYMENT_SANDBOX",Orders!Y2:Y,"<>TEST_PAYMENT_MOCK")' },
+  metric('Awaiting payment', `COUNTIFS(INDIRECT("Orders!D2:D"),"Awaiting Payment",${NOT_TEST})`, 'COUNTIF(INDIRECT("Orders!D2:D"),"Awaiting Payment")'),
+  metric('Failed / expired', `COUNTIFS(INDIRECT("Orders!D2:D"),"Failed",${NOT_TEST})+COUNTIFS(INDIRECT("Orders!D2:D"),"Expired",${NOT_TEST})`, 'COUNTIF(INDIRECT("Orders!D2:D"),"Failed")+COUNTIF(INDIRECT("Orders!D2:D"),"Expired")'),
+  // LEN() rather than "<>": the site writes an empty Review Flag as "", which COUNTIFS does not treat as blank.
+  // Test-payment flags alone do not need a look; anything else (AMOUNT_MISMATCH, PAID_AFTER_EXPIRY, …) does.
+  { label: 'Orders to check (Review Flag set)', f: '=SUMPRODUCT((LEN(INDIRECT("Orders!A2:A"))>0)*(LEN(REGEXREPLACE(INDIRECT("Orders!Y2:Y")&"","TEST_PAYMENT_(SANDBOX|MOCK)|\\s|\\|",""))>0))' },
 ];
 const T0 = 17; // product table header row
 
@@ -116,9 +121,9 @@ async function main() {
   data.push({ range: "'Order Lines'!A1:H1", values: [['Order ID', 'SKU', 'Product', 'Size', 'Name printing', 'Printed name', 'Qty', 'Line total (₹)']] });
   data.push({ range: "'Order Lines'!A2", values: [[LINES]] });
   // Handover
-  const hv = (src) => `=ARRAYFORMULA(IF(Orders!A2:A="",,${src}))`;
+  const hv = (src) => `=ARRAYFORMULA(IF(INDIRECT("Orders!A2:A")="",,${src}))`;
   data.push({ range: 'Handover!A1:K1', values: [['Order ID', 'Status', 'Name', 'Roll number', 'Phone', 'Items', 'Total (₹)', 'Paid at', 'Test payment?', 'Handed over ✓', 'Handed over on / by / notes']] });
-  data.push({ range: 'Handover!A2:I2', values: [[hv('Orders!A2:A'), hv('Orders!D2:D'), hv('Orders!E2:E'), hv('Orders!F2:F'), hv('Orders!H2:H'), hv('Orders!I2:I'), hv('Orders!M2:M'), hv('Orders!V2:V'), hv('REGEXMATCH(Orders!Y2:Y&"","TEST_PAYMENT")')]] });
+  data.push({ range: 'Handover!A2:I2', values: [[hv('INDIRECT("Orders!A2:A")'), hv('INDIRECT("Orders!D2:D")'), hv('INDIRECT("Orders!E2:E")'), hv('INDIRECT("Orders!F2:F")'), hv('INDIRECT("Orders!H2:H")'), hv('INDIRECT("Orders!I2:I")'), hv('INDIRECT("Orders!M2:M")'), hv('INDIRECT("Orders!V2:V")'), hv('REGEXMATCH(INDIRECT("Orders!Y2:Y")&"","TEST_PAYMENT")')]] });
   // Dashboard
   data.push({ range: 'Dashboard!A1:A2', values: [['TEDxIIMRohtak Merch – Dashboard'], ['Updates by itself from the Orders tab. Test (sandbox / demo) payments are never counted. Only the "Handed over" column in Handover is for ticking; everything else is formulas.']] });
   data.push({ range: 'Dashboard!A6:C' + (5 + METRICS.length), values: METRICS.map((x) => [x.label, '', x.f]) });
@@ -127,7 +132,7 @@ async function main() {
   const r1 = T0 + 1, L = "'Order Lines'!";
   const sizeF = SIZES.map((sz, k) => `=MAP($A${r1}:$A,LAMBDA(k,IF(k="",,SUMIFS(${L}$G$2:$G,${L}$B$2:$B,k,${L}$D$2:$D,${col(3 + k)}$${T0}))))`);
   data.push({ range: `Dashboard!A${r1}:${col(2 + SIZES.length + 3)}${r1}`, values: [[
-    '=FILTER(Catalogue!A2:B,Catalogue!A2:A<>"")', '', ...sizeF,
+    '=FILTER(INDIRECT("Catalogue!A2:B"),INDIRECT("Catalogue!A2:A")<>"")', '', ...sizeF,
     `=MAP($A${r1}:$A,LAMBDA(k,IF(k="",,SUMIFS(${L}$G$2:$G,${L}$B$2:$B,k))))`,
     `=MAP($A${r1}:$A,LAMBDA(k,IF(k="",,SUMIFS(${L}$G$2:$G,${L}$B$2:$B,k,${L}$E$2:$E,TRUE))))`,
     `=MAP($A${r1}:$A,LAMBDA(k,IF(k="",,SUMIFS(${L}$H$2:$H,${L}$B$2:$B,k))))`]] });
